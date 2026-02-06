@@ -1,0 +1,23 @@
+{
+  "name": "sanderi-loyalty",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NFC-based loyalty card system for Sanderi stores",
+  "scripts": {
+    "dev:api": "pnpm --filter @sanderi/api dev",
+    "dev:mobile": "pnpm --filter @sanderi/mobile start",
+    "build:api": "pnpm --filter @sanderi/api build",
+    "build:mobile": "pnpm --filter @sanderi/mobile build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:migrate": "pnpm --filter @sanderi/api db:migrate",
+    "db:generate": "pnpm --filter @sanderi/api db:generate",
+    "db:studio": "pnpm --filter @sanderi/api db:studio"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

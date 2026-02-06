@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============== FRANCHISEE & STORE ==============
+
+model Franchisee {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stores Store[]
+  cards  Card[]
+}
+
+model Store {
+  id                     String   @id @default(cuid())
+  franchiseeId           String
+  name                   String
+  hardwareConversionRate Int      @default(100) // ₹X = 1 point
+  plywoodConversionRate  Int      @default(100) // ₹X = 1 point
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  franchisee   Franchisee   @relation(fields: [franchiseeId], references: [id])
+  staff        Staff[]
+  pointEntries PointEntry[]
+
+  @@index([franchiseeId])
+}
+
+// ============== STAFF ==============
+
+model Staff {
+  id           String    @id @default(cuid())
+  storeId      String
+  name         String
+  mobileNumber String    @unique
+  passwordHash String
+  role         StaffRole @default(EMPLOYEE)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  store        Store        @relation(fields: [storeId], references: [id])
+  pointEntries PointEntry[]
+  issuedCards  Card[]       @relation("IssuedBy")
+
+  @@index([storeId])
+  @@index([mobileNumber])
+}
+
+enum StaffRole {
+  ADMIN
+  EMPLOYEE
+}
+
+// ============== CARDS ==============
+
+model Card {
+  cardUid        String     @id // NFC UID - globally unique
+  franchiseeId   String
+  status         CardStatus @default(UNASSIGNED)
+  hardwarePoints Int        @default(0)
+  plywoodPoints  Int        @default(0)
+  issuedById     String? // Staff who enrolled the card
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  franchisee    Franchisee     @relation(fields: [franchiseeId], references: [id])
+  issuedBy      Staff?         @relation("IssuedBy", fields: [issuedById], references: [id])
+  cardHolder    CardHolder?
+  pointEntries  PointEntry[]
+  mobileLookups MobileLookup[]
+
+  @@index([franchiseeId])
+  @@index([status])
+}
+
+enum CardStatus {
+  UNASSIGNED
+  ACTIVE
+  BLOCKED
+}
+
+model CardHolder {
+  id           String   @id @default(cuid())
+  cardUid      String   @unique
+  name         String
+  mobileNumber String   @unique // Unique per card
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  card Card @relation(fields: [cardUid], references: [cardUid])
+
+  @@index([mobileNumber])
+}
+
+model CardBlock {
+  id        String      @id @default(cuid())
+  cardUid   String
+  reason    BlockReason
+  blockedBy String // Staff ID
+  createdAt DateTime    @default(now())
+
+  @@index([cardUid])
+}
+
+enum BlockReason {
+  LOST
+  STOLEN
+  FRAUD
+  OTHER
+}
+
+// ============== POINTS LEDGER ==============
+
+model PointEntry {
+  id              String          @id @default(cuid())
+  entryId         String          @unique // Idempotency key from client
+  cardUid         String
+  storeId         String
+  staffId         String
+  category        PointCategory
+  transactionType TransactionType
+  amount          Int // Original transaction amount in ₹
+  pointsDelta     Int // Points added/removed (can be negative)
+  pointsRemaining Int? // For FIFO tracking: points still available from this entry
+  expiresAt       DateTime? // 12 months from creation for CREDIT entries
+  voidedAt        DateTime? // If voided
+  voidedById      String? // Staff who voided
+  createdAt       DateTime        @default(now())
+
+  card  Card  @relation(fields: [cardUid], references: [cardUid])
+  store Store @relation(fields: [storeId], references: [id])
+  staff Staff @relation(fields: [staffId], references: [id])
+
+  @@index([cardUid, category])
+  @@index([cardUid, expiresAt])
+  @@index([entryId])
+  @@index([createdAt])
+}
+
+enum PointCategory {
+  HARDWARE
+  PLYWOOD
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+  EXPIRY // Created by batch job
+  VOID // Reversal entry
+  TRANSFER // For card reissue
+}
+
+// ============== MOBILE LOOKUP TRACKING ==============
+
+model MobileLookup {
+  id        String   @id @default(cuid())
+  cardUid   String
+  staffId   String
+  month     Int // YYYYMM format (e.g., 202602)
+  createdAt DateTime @default(now())
+
+  card Card @relation(fields: [cardUid], references: [cardUid])
+
+  @@index([cardUid, month])
+}
+
+// ============== OFFLINE SYNC ==============
+
+model ProcessedEntry {
+  entryId     String   @id // Track processed idempotency keys
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
+}

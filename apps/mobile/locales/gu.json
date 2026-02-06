@@ -1,0 +1,191 @@
+{
+  "app": {
+    "name": "સાંદેરી લોયલ્ટી"
+  },
+  "common": {
+    "error": "ભૂલ",
+    "ok": "ઠીક છે",
+    "cancel": "રદ કરો",
+    "unknown": "અજ્ઞાત"
+  },
+  "auth": {
+    "login": "લૉગિન",
+    "loginSubtitle": "તમારા સ્ટાફ એકાઉન્ટમાં સાઇન ઇન કરો",
+    "mobileNumber": "મોબાઇલ નંબર",
+    "mobileNumberPlaceholder": "મોબાઇલ નંબર દાખલ કરો",
+    "password": "પાસવર્ડ",
+    "passwordPlaceholder": "પાસવર્ડ દાખલ કરો",
+    "useFingerprint": "ફિંગરપ્રિન્ટ વાપરો",
+    "biometricPrompt": "લૉગિન કરવા માટે પ્રમાણિત કરો",
+    "error": "લૉગિન નિષ્ફળ",
+    "invalidCredentials": "અમાન્ય મોબાઇલ નંબર અથવા પાસવર્ડ",
+    "biometricFailed": "બાયોમેટ્રિક પ્રમાણીકરણ નિષ્ફળ"
+  },
+  "tabs": {
+    "scan": "સ્કેન",
+    "lookup": "શોધ",
+    "settings": "સેટિંગ્સ"
+  },
+  "status": {
+    "online": "ઓનલાઇન",
+    "offline": "ઓફલાઇન",
+    "pendingSync": "સિંક બાકી",
+    "offlineBanner": "ઓફલાઇન — ક્રિયાઓ કનેક્ટ થયા પછી સિંક થશે"
+  },
+  "scan": {
+    "tapToScan": "કાર્ડ સ્કેન કરવા ટેપ કરો",
+    "scanning": "સ્કેન કરી રહ્યા છીએ...",
+    "holdNearCard": "ફોનને NFC કાર્ડ પાસે રાખો",
+    "tapButton": "સ્કેન શરૂ કરવા નીચેનું બટન ટેપ કરો",
+    "startScan": "સ્કેન શરૂ કરો",
+    "cancel": "રદ કરો",
+    "searchByMobile": "મોબાઇલ નંબરથી શોધો"
+  },
+  "nfc": {
+    "notSupported": "NFC સપોર્ટેડ નથી",
+    "notSupportedMessage": "આ ઉપકરણ NFC ને સપોર્ટ કરતું નથી",
+    "disabled": "NFC અક્ષમ છે",
+    "enableNfc": "કૃપા કરીને તમારા ઉપકરણ સેટિંગ્સમાં NFC સક્ષમ કરો",
+    "scanFailed": "કાર્ડ સ્કેન કરવામાં નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો."
+  },
+  "lookup": {
+    "enterMobile": "મોબાઇલ નંબર દાખલ કરો",
+    "mobilePlaceholder": "9876543210",
+    "search": "શોધો",
+    "invalidMobile": "કૃપા કરીને માન્ય મોબાઇલ નંબર દાખલ કરો",
+    "searchFailed": "શોધ નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો.",
+    "notFound": "ગ્રાહક મળ્યો નથી",
+    "notFoundHint": "આ મોબાઇલ નંબર સાથે કોઈ કાર્ડ નોંધાયેલ નથી",
+    "viewCard": "કાર્ડ વિગતો જુઓ"
+  },
+  "card": {
+    "notFound": "કાર્ડ મળ્યું નથી",
+    "fetchFailed": "કાર્ડ વિગતો લોડ કરવામાં નિષ્ફળ",
+    "enroll": "કાર્ડ નોંધણી",
+    "creditPoints": "પોઈન્ટ્સ ઉમેરો",
+    "redeemPoints": "પોઈન્ટ્સ વટાવો",
+    "viewHistory": "ઇતિહાસ જુઓ",
+    "blockCard": "કાર્ડ બ્લોક કરો",
+    "blockedMessage": "આ કાર્ડ બ્લોક કરવામાં આવ્યું છે અને તેનો ઉપયોગ કરી શકાતો નથી.",
+    "reissue": "નવું કાર્ડ જારી કરો",
+    "credit": "ક્રેડિટ",
+    "debit": "ડેબિટ",
+    "done": "પૂર્ણ",
+    "totalPoints": "કુલ પોઈન્ટ્સ",
+    "pointsEarned": "મેળવેલ પોઈન્ટ્સ",
+    "rupeesEquivalent": "રૂપિયા સમકક્ષ"
+  },
+  "points": {
+    "hardware": "હાર્ડવેર",
+    "plywood": "પ્લાયવુડ",
+    "expiringSoon": "પોઈન્ટ્સ ટૂંક સમયમાં સમાપ્ત થશે",
+    "available": "ઉપલબ્ધ"
+  },
+  "credit": {
+    "selectCategory": "કેટેગરી પસંદ કરો",
+    "enterAmount": "ખરીદી રકમ દાખલ કરો",
+    "pointsToEarn": "મળવાપાત્ર પોઈન્ટ્સ",
+    "conversionRate": "₹{{rate}} = 1 પોઈન્ટ",
+    "confirm": "ક્રેડિટ કન્ફર્મ કરો",
+    "invalidAmount": "કૃપા કરીને માન્ય રકમ દાખલ કરો",
+    "amountTooLow": "પોઈન્ટ્સ મેળવવા માટે રકમ ઓછી છે",
+    "success": "પોઈન્ટ્સ ક્રેડિટ થયા",
+    "successMessage": "{{points}} પોઈન્ટ્સ સફળતાપૂર્વક ક્રેડિટ થયા",
+    "failed": "પોઈન્ટ્સ ક્રેડિટ કરવામાં નિષ્ફળ"
+  },
+  "debit": {
+    "selectCategory": "કેટેગરી પસંદ કરો",
+    "enterPoints": "વટાવવાના પોઈન્ટ્સ દાખલ કરો",
+    "pointsToRedeem": "વટાવવાના પોઈન્ટ્સ",
+    "remaining": "બાકી",
+    "quickSelect": "ઝડપી પસંદગી",
+    "confirm": "વટાવ કન્ફર્મ કરો",
+    "invalidPoints": "કૃપા કરીને માન્ય પોઈન્ટ્સ દાખલ કરો",
+    "insufficientBalance": "અપૂરતી પોઈન્ટ્સ બેલેન્સ",
+    "exceedsBalance": "ઉપલબ્ધ બેલેન્સ કરતાં વધુ",
+    "success": "પોઈન્ટ્સ વટાવ્યા",
+    "successMessage": "{{points}} પોઈન્ટ્સ સફળતાપૂર્વક વટાવ્યા",
+    "failed": "પોઈન્ટ્સ વટાવવામાં નિષ્ફળ"
+  },
+  "enroll": {
+    "cardUid": "કાર્ડ UID",
+    "customerName": "ગ્રાહકનું નામ",
+    "namePlaceholder": "ગ્રાહકનું નામ દાખલ કરો",
+    "customerMobile": "મોબાઇલ નંબર",
+    "mobilePlaceholder": "મોબાઇલ નંબર દાખલ કરો",
+    "submit": "કાર્ડ નોંધણી કરો",
+    "success": "કાર્ડ નોંધાયું",
+    "successMessage": "કાર્ડ સફળતાપૂર્વક નોંધાયું",
+    "failed": "કાર્ડ નોંધણી નિષ્ફળ",
+    "newCustomer": "નવો ગ્રાહક",
+    "existingCustomer": "હાલનો ગ્રાહક",
+    "searchCustomer": "મોબાઇલ નંબરથી શોધો",
+    "transferConfirm": "બધા પોઈન્ટ્સ નવા કાર્ડમાં ટ્રાન્સફર થશે. જૂનું કાર્ડ બ્લોક થશે.",
+    "transferAndAssign": "ટ્રાન્સફર અને સોંપો",
+    "transferSuccess": "કાર્ડ સફળતાપૂર્વક ટ્રાન્સફર થયું"
+  },
+  "block": {
+    "warningTitle": "કાર્ડ બ્લોક કરો",
+    "warningMessage": "આ કાર્ડ બ્લોક કરવાથી કોઈપણ વધુ વ્યવહારો અટકશે. આ ક્રિયા પાછી ન લઈ શકાય.",
+    "selectReason": "બ્લોક કરવાનું કારણ પસંદ કરો",
+    "reasons": {
+      "LOST": "ખોવાયેલું",
+      "STOLEN": "ચોરાયેલું",
+      "FRAUD": "છેતરપિંડી",
+      "OTHER": "અન્ય"
+    },
+    "blockCard": "કાર્ડ બ્લોક કરો",
+    "confirmTitle": "બ્લોક કન્ફર્મ કરો",
+    "confirmMessage": "શું તમે ખરેખર આ કાર્ડ બ્લોક કરવા માંગો છો?",
+    "confirm": "બ્લોક કરો",
+    "success": "કાર્ડ બ્લોક થયું",
+    "successMessage": "કાર્ડ સફળતાપૂર્વક બ્લોક થયું",
+    "failed": "કાર્ડ બ્લોક કરવામાં નિષ્ફળ",
+    "quickConfirm": "આ કાર્ડ બ્લોક કરશો?",
+    "quickConfirmMessage": "આ કાર્ડ કાયમી ધોરણે બ્લોક થશે. કોઈ વધુ વ્યવહારો શક્ય નહીં હોય."
+  },
+  "reissue": {
+    "scanOldCard": "જૂનું કાર્ડ સ્કેન કરો",
+    "scanOldInstruction": "જે કાર્ડ બદલવાનું છે તે સ્કેન કરો",
+    "oldCardScanned": "જૂનું કાર્ડ",
+    "scanNewCard": "નવું કાર્ડ સ્કેન કરો",
+    "scanNewInstruction": "પોઈન્ટ્સ ટ્રાન્સફર કરવા માટે નવું કાર્ડ સ્કેન કરો",
+    "fromCard": "જૂના કાર્ડથી",
+    "toCard": "નવા કાર્ડમાં",
+    "confirmNote": "બધા પોઈન્ટ્સ નવા કાર્ડમાં ટ્રાન્સફર થશે. જૂનું કાર્ડ બ્લોક થશે.",
+    "confirm": "ટ્રાન્સફર કન્ફર્મ કરો",
+    "sameCard": "સમાન કાર્ડમાં ફરીથી જારી કરી શકાતું નથી",
+    "success": "કાર્ડ ફરી જારી થયું",
+    "successMessage": "પોઈન્ટ્સ નવા કાર્ડમાં ટ્રાન્સફર થયા",
+    "failed": "કાર્ડ ફરી જારી કરવામાં નિષ્ફળ"
+  },
+  "history": {
+    "empty": "કોઈ વ્યવહારો નથી",
+    "emptyHint": "વ્યવહાર ઇતિહાસ અહીં દેખાશે",
+    "syncing": "સિંક થઈ રહ્યું છે...",
+    "enroll": "નોંધણી",
+    "credit": "ક્રેડિટ",
+    "debit": "વટાવ",
+    "block": "બ્લોક",
+    "void": "રદ",
+    "amount": "રકમ",
+    "points": "પોઈન્ટ્સ",
+    "purchaseAmount": "ખરીદી રકમ",
+    "noTransactions": "કોઈ વ્યવહારો મળ્યા નથી"
+  },
+  "settings": {
+    "appearance": "દેખાવ",
+    "darkMode": "ડાર્ક મોડ",
+    "language": "ભાષા",
+    "about": "વિશે",
+    "version": "વર્ઝન",
+    "logout": "લૉગઆઉટ",
+    "logoutConfirmTitle": "લૉગઆઉટ",
+    "logoutConfirmMessage": "શું તમે ખરેખર લૉગઆઉટ કરવા માંગો છો?"
+  },
+  "success": {
+    "transactionComplete": "વ્યવહાર પૂર્ણ",
+    "pointsCredited": "પોઈન્ટ્સ સફળતાપૂર્વક ક્રેડિટ થયા",
+    "pointsRedeemed": "પોઈન્ટ્સ સફળતાપૂર્વક વટાવ્યા"
+  }
+}

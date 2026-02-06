@@ -1,0 +1,191 @@
+{
+  "app": {
+    "name": "Sanderi Loyalty"
+  },
+  "common": {
+    "error": "Error",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "unknown": "Unknown"
+  },
+  "auth": {
+    "login": "Login",
+    "loginSubtitle": "Sign in to your staff account",
+    "mobileNumber": "Mobile Number",
+    "mobileNumberPlaceholder": "Enter mobile number",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "useFingerprint": "Use Fingerprint",
+    "biometricPrompt": "Authenticate to login",
+    "error": "Login Failed",
+    "invalidCredentials": "Invalid mobile number or password",
+    "biometricFailed": "Biometric authentication failed"
+  },
+  "tabs": {
+    "scan": "Scan",
+    "lookup": "Lookup",
+    "settings": "Settings"
+  },
+  "status": {
+    "online": "Online",
+    "offline": "Offline",
+    "pendingSync": "Pending sync",
+    "offlineBanner": "Offline — actions will sync when connected"
+  },
+  "scan": {
+    "tapToScan": "Tap to Scan Card",
+    "scanning": "Scanning...",
+    "holdNearCard": "Hold phone near the NFC card",
+    "tapButton": "Tap the button below to start scanning",
+    "startScan": "Start Scan",
+    "cancel": "Cancel",
+    "searchByMobile": "Search by Mobile Number"
+  },
+  "nfc": {
+    "notSupported": "NFC Not Supported",
+    "notSupportedMessage": "This device does not support NFC",
+    "disabled": "NFC Disabled",
+    "enableNfc": "Please enable NFC in your device settings",
+    "scanFailed": "Failed to scan card. Please try again."
+  },
+  "lookup": {
+    "enterMobile": "Enter Mobile Number",
+    "mobilePlaceholder": "9876543210",
+    "search": "Search",
+    "invalidMobile": "Please enter a valid mobile number",
+    "searchFailed": "Search failed. Please try again.",
+    "notFound": "Customer Not Found",
+    "notFoundHint": "No card is registered with this mobile number",
+    "viewCard": "View Card Details"
+  },
+  "card": {
+    "notFound": "Card not found",
+    "fetchFailed": "Failed to load card details",
+    "enroll": "Enroll Card",
+    "creditPoints": "Credit Points",
+    "redeemPoints": "Redeem Points",
+    "viewHistory": "View History",
+    "blockCard": "Block Card",
+    "blockedMessage": "This card has been blocked and cannot be used.",
+    "reissue": "Reissue New Card",
+    "credit": "Credit",
+    "debit": "Debit",
+    "done": "Done",
+    "totalPoints": "Total Points",
+    "pointsEarned": "Points Earned",
+    "rupeesEquivalent": "Rupees Equivalent"
+  },
+  "points": {
+    "hardware": "Hardware",
+    "plywood": "Plywood",
+    "expiringSoon": "points expiring soon",
+    "available": "available"
+  },
+  "credit": {
+    "selectCategory": "Select Category",
+    "enterAmount": "Enter Purchase Amount",
+    "pointsToEarn": "Points to Earn",
+    "conversionRate": "₹{{rate}} = 1 point",
+    "confirm": "Confirm Credit",
+    "invalidAmount": "Please enter a valid amount",
+    "amountTooLow": "Amount is too low to earn points",
+    "success": "Points Credited",
+    "successMessage": "Successfully credited {{points}} points",
+    "failed": "Failed to credit points"
+  },
+  "debit": {
+    "selectCategory": "Select Category",
+    "enterPoints": "Enter Points to Redeem",
+    "pointsToRedeem": "Points to Redeem",
+    "remaining": "Remaining",
+    "quickSelect": "Quick Select",
+    "confirm": "Confirm Redemption",
+    "invalidPoints": "Please enter valid points",
+    "insufficientBalance": "Insufficient points balance",
+    "exceedsBalance": "Exceeds available balance",
+    "success": "Points Redeemed",
+    "successMessage": "Successfully redeemed {{points}} points",
+    "failed": "Failed to redeem points"
+  },
+  "enroll": {
+    "cardUid": "Card UID",
+    "customerName": "Customer Name",
+    "namePlaceholder": "Enter customer name",
+    "customerMobile": "Mobile Number",
+    "mobilePlaceholder": "Enter mobile number",
+    "submit": "Enroll Card",
+    "success": "Card Enrolled",
+    "successMessage": "Card has been successfully enrolled",
+    "failed": "Failed to enroll card",
+    "newCustomer": "New Customer",
+    "existingCustomer": "Existing Customer",
+    "searchCustomer": "Search by mobile number",
+    "transferConfirm": "All points will be transferred to the new card. The old card will be blocked.",
+    "transferAndAssign": "Transfer & Assign",
+    "transferSuccess": "Card transferred successfully"
+  },
+  "block": {
+    "warningTitle": "Block Card",
+    "warningMessage": "Blocking this card will prevent any further transactions. This action cannot be undone.",
+    "selectReason": "Select Reason for Blocking",
+    "reasons": {
+      "LOST": "Lost",
+      "STOLEN": "Stolen",
+      "FRAUD": "Fraud",
+      "OTHER": "Other"
+    },
+    "blockCard": "Block Card",
+    "confirmTitle": "Confirm Block",
+    "confirmMessage": "Are you sure you want to block this card?",
+    "confirm": "Block",
+    "success": "Card Blocked",
+    "successMessage": "Card has been blocked successfully",
+    "failed": "Failed to block card",
+    "quickConfirm": "Block this card?",
+    "quickConfirmMessage": "This will permanently block the card. No further transactions will be possible."
+  },
+  "reissue": {
+    "scanOldCard": "Scan Old Card",
+    "scanOldInstruction": "Scan the card that needs to be replaced",
+    "oldCardScanned": "Old Card",
+    "scanNewCard": "Scan New Card",
+    "scanNewInstruction": "Scan the new card to transfer points to",
+    "fromCard": "From Card",
+    "toCard": "To Card",
+    "confirmNote": "All points will be transferred to the new card. The old card will be blocked.",
+    "confirm": "Confirm Transfer",
+    "sameCard": "Cannot reissue to the same card",
+    "success": "Card Reissued",
+    "successMessage": "Points have been transferred to the new card",
+    "failed": "Failed to reissue card"
+  },
+  "history": {
+    "empty": "No Transactions",
+    "emptyHint": "Transaction history will appear here",
+    "syncing": "Syncing...",
+    "enroll": "Enrollment",
+    "credit": "Credit",
+    "debit": "Redemption",
+    "block": "Block",
+    "void": "Void",
+    "amount": "Amount",
+    "points": "Points",
+    "purchaseAmount": "Purchase amount",
+    "noTransactions": "No transactions found"
+  },
+  "settings": {
+    "appearance": "Appearance",
+    "darkMode": "Dark Mode",
+    "language": "Language",
+    "about": "About",
+    "version": "Version",
+    "logout": "Logout",
+    "logoutConfirmTitle": "Logout",
+    "logoutConfirmMessage": "Are you sure you want to logout?"
+  },
+  "success": {
+    "transactionComplete": "Transaction Complete",
+    "pointsCredited": "Points credited successfully",
+    "pointsRedeemed": "Points redeemed successfully"
+  }
+}
