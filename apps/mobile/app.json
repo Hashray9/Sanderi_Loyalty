@@ -44,8 +44,10 @@
         {
           "nfcPermission": "This app uses NFC to read loyalty cards"
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
+    "jsEngine": "hermes",
     "experiments": {
       "typedRoutes": true
     },

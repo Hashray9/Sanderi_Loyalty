@@ -48,10 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [franchisee, setFranchisee] = useState<Franchisee | null>(null);
   const [hasBiometrics, setHasBiometrics] = useState(false);
 
-  useEffect(() => {
-    checkBiometrics();
-  }, []);
-
   const checkBiometrics = async () => {
     try {
       const compatible = await LocalAuthentication.hasHardwareAsync();
@@ -64,27 +60,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const checkAuth = useCallback(async () => {
+    console.log('🔐 checkAuth: Starting');
     setIsLoading(true);
     try {
+      console.log('🔐 checkAuth: Reading token from SecureStore');
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
+      console.log('🔐 checkAuth: Token exists?', !!token);
+
       if (token) {
+        console.log('🔐 checkAuth: Setting auth token');
         setAuthToken(token);
         // Could validate token with server here if needed
         setIsAuthenticated(true);
+        console.log('🔐 checkAuth: Set isAuthenticated = true');
 
         // Load cached user data
+        console.log('🔐 checkAuth: Reading cached user data');
         const cachedData = await SecureStore.getItemAsync('user_data');
         if (cachedData) {
+          console.log('🔐 checkAuth: Parsing cached user data');
           const { staff: s, store: st, franchisee: f } = JSON.parse(cachedData);
           setStaff(s);
           setStore(st);
           setFranchisee(f);
+          console.log('🔐 checkAuth: User data loaded');
+        } else {
+          console.log('🔐 checkAuth: No cached user data');
         }
+      } else {
+        console.log('🔐 checkAuth: No token found, user not authenticated');
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('🔐 checkAuth: Failed:', error);
     } finally {
+      console.log('🔐 checkAuth: Setting isLoading = false');
       setIsLoading(false);
+      console.log('🔐 checkAuth: Done');
     }
   }, []);
 
@@ -131,6 +142,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setFranchisee(null);
     setIsAuthenticated(false);
   }, []);
+
+  // Initialize auth on mount
+  useEffect(() => {
+    const initialize = async () => {
+      console.log('🔐 AuthProvider: Initializing...');
+      try {
+        console.log('🔐 AuthProvider: Checking biometrics');
+        await checkBiometrics();
+        console.log('🔐 AuthProvider: Checking auth');
+        await checkAuth();
+        console.log('🔐 AuthProvider: Initialized successfully');
+      } catch (error) {
+        console.error('🔐 AuthProvider: Initialization failed:', error);
+        setIsLoading(false);
+      }
+    };
+    initialize();
+  }, [checkAuth]);
 
   return (
     <AuthContext.Provider

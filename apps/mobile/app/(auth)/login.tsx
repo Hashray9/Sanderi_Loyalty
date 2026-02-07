@@ -28,6 +28,7 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
+  console.log('🔑 LoginScreen: Rendering');
   const router = useRouter();
   const { login, hasBiometrics, loginWithBiometrics } = useAuth();
   const { colors } = useTheme();

@@ -10,7 +10,9 @@
       "Bash(cmd /c \"corepack enable && pnpm --filter @sanderi/mobile add @legendapp/motion expo-haptics\")",
       "Bash(cmd /c \"pnpm --version 2>&1\")",
       "Bash(cmd /c \"where pnpm 2>&1 & pnpm --version 2>&1 & echo DONE\")",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(node -e:*)",
+      "Bash(node --no-warnings --eval:*)"
     ]
   }
 }
