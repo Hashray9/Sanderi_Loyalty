@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash screen background color - primary blue color -->
+    <color name="splash_background">#2563eb</color>
+    
+    <!-- Primary color for the app -->
+    <color name="primary">#2563eb</color>
+    <color name="primary_dark">#1d4ed8</color>
+    
+    <!-- Adaptive icon background color (white) -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+</resources>

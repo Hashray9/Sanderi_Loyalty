@@ -1,0 +1,275 @@
+=== SANDERI LOYALTY MOBILE - DATA FLOW DOCUMENTATION ===
+Version: 1.0.1
+Last Updated: 2026-02-08
+
+=== BRANDING ASSETS ===
+
+Source Assets (src/assets/):
+  - icon.png: App launcher icon (1024x1024) - Sanderi logo
+  - splash.png: Splash screen image - Full logo with tagline
+  - adaptive-icon.png: Foreground for Android adaptive icons
+
+Android Configuration:
+  - mipmap-*/ic_launcher.png: Standard launcher icons (all densities)
+  - mipmap-*/ic_launcher_round.png: Round launcher icons
+  - mipmap-*/ic_launcher_foreground.png: Adaptive icon foreground
+  - mipmap-anydpi-v26/ic_launcher.xml: Adaptive icon configuration
+  - drawable/splash.png: Splash screen image
+  - layout/launch_screen.xml: Splash screen layout (references splash.png)
+  - values/colors.xml: ic_launcher_background (#FFFFFF for white bg)
+
+iOS Configuration:
+  - Images.xcassets/AppIcon.appiconset/: App icon configuration
+  - Images.xcassets/SplashImage.imageset/: Splash image for launch screen
+  - LaunchScreen.storyboard: iOS launch screen with centered splash image
+
+=== SYSTEM ARCHITECTURE OVERVIEW ===
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    MOBILE APP (Bare React Native)                │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
+│  │   Screens   │──│  Contexts   │──│      Navigation         │  │
+│  │  (UI/UX)    │  │ (Auth/Theme)│  │ (RootNavigator, Stacks) │  │
+│  └──────┬──────┘  └──────┬──────┘  └─────────────────────────┘  │
+│         │                │                                       │
+│  ┌──────┴────────────────┴─────────────────────────────────┐    │
+│  │                        HOOKS                              │    │
+│  │  ┌──────────┐  ┌──────────────┐  ┌─────────────────────┐ │   │
+│  │  │  useNfc  │  │  useNetwork  │  │  useOfflineQueue    │ │   │
+│  │  └────┬─────┘  └──────┬───────┘  └──────────┬──────────┘ │   │
+│  └───────┼───────────────┼─────────────────────┼────────────┘   │
+│          │               │                     │                 │
+│  ┌───────┴───────────────┴─────────────────────┴───────────┐    │
+│  │                    NATIVE MODULES                         │   │
+│  │  ┌────────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │    │
+│  │  │ NfcManager │  │ NetInfo  │  │  SQLite  │  │Keychain│ │    │
+│  │  └────────────┘  └──────────┘  └──────────┘  └────────┘ │    │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                      API CLIENT                           │   │
+│  │           (src/lib/api.ts - Fetch Wrapper)                │   │
+│  └────────────────────────────┬─────────────────────────────┘   │
+└───────────────────────────────┼─────────────────────────────────┘
+                                │ HTTP/HTTPS
+                                ▼
+                    ┌───────────────────────┐
+                    │   BACKEND API         │
+                    │   (Node.js/Express)   │
+                    │   http://172.20.10.2  │
+                    └───────────────────────┘
+
+=== DETAILED DATA FLOWS ===
+
+--- 1. AUTHENTICATION FLOW ---
+
+┌────────────────┐
+│  App Startup   │
+└───────┬────────┘
+        │
+        ▼
+┌───────────────────────────────────────┐
+│ AuthProvider.useEffect → initialize() │
+└───────┬───────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────┐
+│ checkBiometrics()                     │
+│ - rnBiometrics.isSensorAvailable()    │
+│ - Check if credentials stored         │
+└───────┬───────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────┐
+│ checkAuth()                           │
+│ - Keychain.getGenericPassword(TOKEN)  │
+│ - If token exists: setAuthToken()     │
+│ - Load cached user data               │
+└───────┬───────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ RootNavigator checks isAuthenticated      │
+│ - true → Show AppTabs                     │
+│ - false → Show AuthStack (LoginScreen)    │
+└───────────────────────────────────────────┘
+
+--- 2. LOGIN FLOW ---
+
+User enters credentials
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ onSubmit(mobileNumber, password)          │
+│ - Validate with zod schema                │
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ AuthContext.login()                       │
+│ - api.post('/auth/login', credentials)    │
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ Store credentials securely                │
+│ - Keychain.setGenericPassword(TOKEN)      │
+│ - Keychain.setGenericPassword(USER_DATA)  │
+│ - Keychain.setGenericPassword(CREDENTIALS)│
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ setIsAuthenticated(true)                  │
+│ → RootNavigator switches to AppTabs       │
+└───────────────────────────────────────────┘
+
+--- 3. BIOMETRIC LOGIN FLOW ---
+
+┌───────────────────────────────────────────┐
+│ loginWithBiometrics()                     │
+│ - Keychain.getGenericPassword(CREDENTIALS)│
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ rnBiometrics.simplePrompt()               │
+│ - Native biometric authentication         │
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ If success: login(mobileNumber, password) │
+│ → Same as normal login flow               │
+└───────────────────────────────────────────┘
+
+--- 4. NFC SCAN FLOW ---
+
+┌───────────────────────────────────────────┐
+│ ScanScreen: User taps "Scan" button       │
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ useNfc.startScan()                        │
+│ - NfcManager.requestTechnology(NfcA)      │
+│ - Wait for card to be tapped              │
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ NfcManager.getTag()                       │
+│ - Extract card UID                        │
+│ - Convert to hex string                   │
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ SparkleParticles animation                │
+│ - Haptic feedback                         │
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ navigation.navigate('Card', { cardUid })  │
+└───────────────────────────────────────────┘
+
+--- 5. OFFLINE QUEUE FLOW ---
+
+┌───────────────────────────────────────────┐
+│ User performs action (credit/debit/etc)   │
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ useOfflineQueue.addAction()               │
+│ - Generate UUID for entryId               │
+│ - Store in SQLite with status PENDING     │
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ Check if online                           │
+│ - If online: trigger syncQueue()          │
+│ - If offline: queue remains pending       │
+└───────┬───────────────────────────────────┘
+        │
+        ▼ (when online)
+┌───────────────────────────────────────────┐
+│ syncQueue()                               │
+│ - Fetch all PENDING actions from SQLite   │
+│ - Update status to SYNCING                │
+│ - api.post('/sync/offline-actions')       │
+└───────┬───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│ Process server response                   │
+│ - Success: update status to SUCCESS       │
+│ - Failed: increment retryCount            │
+└───────────────────────────────────────────┘
+
+--- 6. CARD OPERATIONS FLOW ---
+
+┌────────────────────────────────────────────────┐
+│ CardDetailScreen loads                          │
+│ - api.get('/cards/{cardUid}/status')            │
+└───────┬────────────────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────────────────────────┐
+│ Check card status                               │
+│ - UNASSIGNED → navigate to EnrollScreen         │
+│ - ACTIVE → show credit/debit options            │
+│ - BLOCKED → show blocked notice                 │
+└───────┬────────────────────────────────────────┘
+        │
+        ▼ (User selects category and action)
+┌────────────────────────────────────────────────┐
+│ AmountInput component                           │
+│ - Enter amount/points                           │
+│ - Preview conversion                            │
+└───────┬────────────────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────────────────────────┐
+│ handleCreditDone() / handleDebitDone()          │
+│ - useOfflineQueue.addAction({                   │
+│     actionType: 'CREDIT' or 'DEBIT',            │
+│     payload: { cardUid, category, amount }      │
+│   })                                            │
+└───────┬────────────────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────────────────────────┐
+│ SuccessOverlay with haptic feedback             │
+│ - Refetch card data after 1.6s                  │
+└────────────────────────────────────────────────┘
+
+=== ERROR HANDLING STRATEGIES ===
+
+1. Network Errors
+   - Offline queue stores actions in SQLite
+   - NetInfo listener auto-syncs when reconnected
+   - Banner shown when offline
+
+2. API Errors
+   - Alert.alert() for user feedback
+   - Retry logic in offline queue (max 3 retries)
+
+3. Auth Errors
+   - 401 responses trigger logout
+   - Token refresh (if implemented)
+
+4. NFC Errors
+   - Check isSupported before scanning
+   - Check isEnabled and prompt to enable
+   - Cancel gracefully on timeout
+
+=== SECURITY MEASURES ===
+
+1. Token Storage: react-native-keychain (encrypted)
+2. Biometric Auth: react-native-biometrics
+3. API Auth: Bearer token in headers
+4. No sensitive data in AsyncStorage

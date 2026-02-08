@@ -1,0 +1,72 @@
+============================================================
+         SANDERI LOYALTY - TECHNICAL CONCEPTS USED
+============================================================
+Last Updated: 2026-02-08
+
+=== BACKEND (packages/api) ===
+
+--- Core Technologies ---
+- Express.js: REST API framework
+- TypeScript: Type-safe JavaScript
+- Prisma ORM: Database abstraction and migrations
+- PostgreSQL: Relational database
+
+--- Authentication ---
+- JWT (jsonwebtoken): Token-based authentication
+- bcryptjs: Password hashing
+
+--- Validation ---
+- Zod: Schema validation for request bodies
+
+--- Scheduled Jobs ---
+- node-cron: Scheduled tasks (point expiry)
+
+--- Database Seeding ---
+- prisma/seed.ts: Initial database population (franchisee, stores, staff)
+- prisma/seed-test-cards.ts: Test card seeding for development (3 active cards with points)
+
+--- Key Concepts ---
+- Idempotency keys: Prevent duplicate point entries
+- FIFO point expiry: Points expire after 12 months
+- Multi-franchisee support: Cards belong to specific franchisees
+- Card lifecycle: UNASSIGNED → ACTIVE → BLOCKED
+
+=== MOBILE APP (apps/mobile-new) ===
+
+--- Core Technologies ---
+- React Native: Cross-platform mobile framework
+- Expo: Development and build tooling
+- TypeScript: Type-safe JavaScript
+
+--- State Management ---
+- React Context: Auth and app state
+- React Query: Server state management
+
+--- Navigation ---
+- React Navigation: Screen navigation
+
+--- NFC ---
+- react-native-nfc-manager: NFC card reading
+
+--- Forms ---
+- React Hook Form: Form handling
+- Zod: Schema validation
+
+=== DATABASE SCHEMA ===
+
+--- Key Models ---
+- Franchisee: Business entity owning stores
+- Store: Physical location with conversion rates
+- Staff: Employees with roles (ADMIN/EMPLOYEE)
+- Card: NFC loyalty cards with point balances
+- CardHolder: Customer linked to card
+- PointEntry: Transaction ledger
+
+--- Enums ---
+- CardStatus: UNASSIGNED, ACTIVE, BLOCKED
+- StaffRole: ADMIN, EMPLOYEE
+- PointCategory: HARDWARE, PLYWOOD
+- TransactionType: CREDIT, DEBIT, EXPIRY, VOID, TRANSFER
+- BlockReason: LOST, STOLEN, FRAUD, OTHER
+
+============================================================

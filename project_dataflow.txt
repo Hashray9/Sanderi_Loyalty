@@ -1,0 +1,87 @@
+============================================================
+              SANDERI LOYALTY - PROJECT DATAFLOW
+============================================================
+Last Updated: 2026-02-08
+
+=== SYSTEM ARCHITECTURE OVERVIEW ===
+
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Mobile App     │────▶│   API Server    │────▶│   PostgreSQL    │
+│  (React Native) │     │   (Express)     │     │   (Prisma ORM)  │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+
+=== AUTHENTICATION FLOW ===
+
+1. Staff enters mobile number and password
+2. API validates credentials against Staff table
+3. API generates JWT token with staffId, storeId, franchiseeId
+4. Mobile app stores token securely
+5. All subsequent requests include Authorization header
+
+=== CARD LOOKUP FLOW ===
+
+1. Staff scans NFC card OR enters mobile number
+2. App sends cardUid/mobile to /api/cards/:cardUid/status or /api/lookup/mobile
+3. API verifies card belongs to staff's franchisee
+4. API returns card status, points, holder info, expiring points
+5. App displays card information
+
+=== POINT CREDIT FLOW ===
+
+1. Staff scans card and enters transaction amount
+2. App generates unique entryId (idempotency key)
+3. App sends POST /api/points/credit
+4. API calculates points based on store conversion rate
+5. API creates PointEntry record with CREDIT type
+6. API updates Card.hardwarePoints or Card.plywoodPoints
+7. Response returns new point balance
+
+=== POINT DEBIT FLOW ===
+
+1. Staff scans card and enters redemption amount
+2. App generates unique entryId
+3. App sends POST /api/points/debit
+4. API validates sufficient points available
+5. API creates PointEntry record with DEBIT type
+6. API updates Card point balance (decrement)
+7. Response returns new point balance
+
+=== CARD ENROLLMENT FLOW ===
+
+1. Staff scans new/unassigned NFC card
+2. Staff enters customer name and mobile
+3. App sends POST /api/cards/enroll
+4. API validates card is unassigned and mobile unused
+5. API creates CardHolder linked to card
+6. API updates Card status to ACTIVE
+7. Response confirms enrollment
+
+=== DATABASE SEEDING FLOW ===
+
+--- Initial Seed (seed.ts) ---
+1. Creates default Franchisee
+2. Creates default Store with conversion rates
+3. Creates Admin and Employee staff accounts
+4. Creates unassigned test cards (CARD001-CARD005)
+
+--- Test Cards Seed (seed-test-cards.ts) ---
+1. Finds existing Franchisee, Store, Admin
+2. Creates 3 active test cards:
+   - TEST001: Rahul Sharma (150 HW, 75 PW points)
+   - TEST002: Priya Patel (500 HW, 250 PW points)
+   - TEST003: Amit Kumar (0 HW, 100 PW points)
+3. Creates CardHolder records with mobile numbers
+4. Creates initial PointEntry records for history
+
+=== ERROR HANDLING STRATEGIES ===
+
+- AppError class for consistent error responses
+- Error codes: CARD_NOT_FOUND, FRANCHISE_MISMATCH, etc.
+- Zod validation for request body validation
+- Transaction rollback on failure
+
+=== EXTERNAL SERVICES ===
+
+- ngrok: Tunnel for local development (API access from phone)
+
+============================================================

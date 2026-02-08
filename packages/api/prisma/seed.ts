@@ -64,6 +64,105 @@ async function main() {
   }
   console.log('Created', cardUids.length, 'unassigned cards');
 
+  // ============== ACTIVE TEST CARDS FOR LOOKUP/CREDIT/DEBIT ==============
+  // These cards have holders and points for testing without a physical NFC card
+
+  const testCards = [
+    {
+      cardUid: 'TEST001',
+      customerName: 'Rahul Sharma',
+      customerMobile: '9876543210',
+      hardwarePoints: 150,
+      plywoodPoints: 75,
+    },
+    {
+      cardUid: 'TEST002',
+      customerName: 'Priya Patel',
+      customerMobile: '9876543211',
+      hardwarePoints: 500,
+      plywoodPoints: 250,
+    },
+    {
+      cardUid: 'TEST003',
+      customerName: 'Amit Kumar',
+      customerMobile: '9876543212',
+      hardwarePoints: 0,
+      plywoodPoints: 100,
+    },
+  ];
+
+  for (const testCard of testCards) {
+    // Create the card with ACTIVE status and points
+    await prisma.card.create({
+      data: {
+        cardUid: testCard.cardUid,
+        franchiseeId: franchisee.id,
+        status: 'ACTIVE',
+        hardwarePoints: testCard.hardwarePoints,
+        plywoodPoints: testCard.plywoodPoints,
+        issuedById: admin.id,
+      },
+    });
+
+    // Create the card holder
+    await prisma.cardHolder.create({
+      data: {
+        cardUid: testCard.cardUid,
+        name: testCard.customerName,
+        mobileNumber: testCard.customerMobile,
+      },
+    });
+
+    // Create some sample point entry history
+    const expiresAt = new Date();
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1); // 1 year from now
+
+    if (testCard.hardwarePoints > 0) {
+      await prisma.pointEntry.create({
+        data: {
+          entryId: `SEED-${testCard.cardUid}-HW`,
+          cardUid: testCard.cardUid,
+          storeId: store.id,
+          staffId: admin.id,
+          category: 'HARDWARE',
+          transactionType: 'CREDIT',
+          amount: testCard.hardwarePoints * 100, // Simulated ₹ amount
+          pointsDelta: testCard.hardwarePoints,
+          pointsRemaining: testCard.hardwarePoints,
+          expiresAt,
+        },
+      });
+    }
+
+    if (testCard.plywoodPoints > 0) {
+      await prisma.pointEntry.create({
+        data: {
+          entryId: `SEED-${testCard.cardUid}-PW`,
+          cardUid: testCard.cardUid,
+          storeId: store.id,
+          staffId: admin.id,
+          category: 'PLYWOOD',
+          transactionType: 'CREDIT',
+          amount: testCard.plywoodPoints * 100, // Simulated ₹ amount
+          pointsDelta: testCard.plywoodPoints,
+          pointsRemaining: testCard.plywoodPoints,
+          expiresAt,
+        },
+      });
+    }
+
+    console.log(`Created active card: ${testCard.cardUid} (${testCard.customerName}, ${testCard.customerMobile})`);
+    console.log(`  - Hardware Points: ${testCard.hardwarePoints}, Plywood Points: ${testCard.plywoodPoints}`);
+  }
+
+  console.log('\n============== TEST CARD SUMMARY ==============');
+  console.log('| Card UID | Customer Name  | Mobile      | HW Pts | PW Pts |');
+  console.log('|----------|----------------|-------------|--------|--------|');
+  for (const tc of testCards) {
+    console.log(`| ${tc.cardUid.padEnd(8)} | ${tc.customerName.padEnd(14)} | ${tc.customerMobile} | ${tc.hardwarePoints.toString().padStart(6)} | ${tc.plywoodPoints.toString().padStart(6)} |`);
+  }
+  console.log('================================================\n');
+
   console.log('Seeding completed!');
 }
 

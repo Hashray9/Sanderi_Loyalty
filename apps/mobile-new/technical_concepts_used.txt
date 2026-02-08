@@ -1,0 +1,214 @@
+=== SANDERI LOYALTY MOBILE APP - BARE REACT NATIVE ===
+Version: 1.0.0
+Last Updated: 2026-02-07
+
+=== FRONTEND ===
+
+--- Core Framework ---
+- React Native (Bare): Mobile app framework without Expo managed workflow
+  - Used for building native Android application
+  - Direct access to native modules without Expo wrapper
+  - CLI-based project structure
+
+--- Navigation ---
+- @react-navigation/native: Core navigation library
+  - NavigationContainer for app-wide navigation context
+  - Theme integration for consistent styling
+
+- @react-navigation/native-stack: Native stack navigator
+  - Used for RootNavigator, AuthStack, and CardStack
+  - Full-screen modal presentation for card screens
+
+- @react-navigation/bottom-tabs: Bottom tab navigator
+  - Used for AppTabs with Scan, Lookup, and Settings screens
+
+--- State Management & Context ---
+- React Context API: Global state management
+  - AuthContext: Authentication state, tokens, biometrics
+  - ThemeContext: Dark/light mode, color scheme
+
+--- Forms & Validation ---
+- react-hook-form: Form state management
+  - Controller component for controlled inputs
+  - handleSubmit for form submission
+
+- @hookform/resolvers: Validation resolver
+  - zodResolver for integrating zod schemas
+
+- zod: Schema validation
+  - Login form validation
+  - Enrollment form validation
+
+--- Animations ---
+- react-native-reanimated: High-performance animations
+  - Shared values for animation state
+  - useAnimatedStyle for animated styles
+  - FadeInDown, FadeOutUp for enter/exit animations
+  - withSpring, withTiming for animation timing
+  - Replaces @legendapp/motion from Expo version
+
+--- Gestures ---
+- react-native-gesture-handler: Gesture handling
+  - GestureHandlerRootView wrapper
+
+--- Storage ---
+- @react-native-async-storage/async-storage: Persistent key-value storage
+  - Theme preferences
+  - Language preferences
+  - Replaces expo-constants storage
+
+- react-native-keychain: Secure credential storage
+  - Auth tokens
+  - User credentials for biometric login
+  - Replaces expo-secure-store
+
+--- Biometrics ---
+- react-native-biometrics: Fingerprint/Face authentication
+  - isSensorAvailable() for capability check
+  - simplePrompt() for authentication
+  - Replaces expo-local-authentication
+
+--- NFC ---
+- react-native-nfc-manager: NFC tag reading
+  - requestTechnology() for NFC access
+  - getTag() for reading card UID
+  - Same as Expo version
+
+--- Database ---
+- react-native-nitro-sqlite: High-performance local SQLite database
+  - Offline action queue
+  - JSI-based synchronous API via Nitro modules
+  - Replaces expo-sqlite and react-native-sqlite-storage (Gradle 9 compatible)
+
+--- Network ---
+- @react-native-community/netinfo: Network state detection
+  - addEventListener for connection changes
+  - isConnected and isInternetReachable checks
+  - Replaces expo-network
+
+--- Configuration ---
+- react-native-config: Environment variables
+  - .env file support
+  - API_URL configuration
+  - Replaces expo-constants
+
+--- Haptics ---
+- react-native-haptic-feedback: Tactile feedback
+  - notificationSuccess for success feedback
+  - Replaces expo-haptics
+
+--- Splash Screen ---
+- react-native-splash-screen: Native splash screen
+  - SplashScreen.hide() after app ready
+
+--- Internationalization ---
+- i18next: Translation framework
+  - English (en) and Gujarati (gu) locales
+
+- react-i18next: React bindings for i18next
+  - useTranslation hook
+  - Same as Expo version
+
+--- UI Components ---
+- react-native-safe-area-context: Safe area handling
+  - SafeAreaProvider wrapper
+  - SafeAreaView for content
+
+--- HTTP Client ---
+- Custom fetch wrapper: API client
+  - Mimics axios API
+  - Timeout handling with AbortController
+  - Bearer token authentication
+
+--- UUID Generation ---
+- uuid: Unique identifier generation
+  - v4 for offline action IDs
+
+=== BACKEND COMMUNICATION ===
+
+- REST API: HTTP communication with Node.js backend
+- Offline-first: Queue actions when offline, sync when online
+- JWT: Bearer token authentication
+
+=== PROJECT STRUCTURE ===
+
+apps/mobile-new/
+├── src/
+│   ├── components/    # Reusable UI components
+│   ├── contexts/      # React contexts (Auth, Theme)
+│   ├── hooks/         # Custom hooks (NFC, Network, OfflineQueue)
+│   ├── lib/           # Utilities (api, i18n)
+│   ├── locales/       # Translation files
+│   ├── navigation/    # Navigation stacks
+│   └── screens/       # Screen components
+├── android/           # Android native code
+├── ios/               # iOS native code (if applicable)
+├── App.tsx            # Root component
+├── index.js           # Entry point
+├── babel.config.js    # Babel configuration
+├── metro.config.js    # Metro bundler configuration
+├── tsconfig.json      # TypeScript configuration
+└── .env               # Environment variables
+
+=== KEY DIFFERENCES FROM EXPO VERSION ===
+
+1. Navigation: expo-router → @react-navigation
+2. Secure Storage: expo-secure-store → react-native-keychain
+3. Biometrics: expo-local-authentication → react-native-biometrics
+4. Database: expo-sqlite → react-native-sqlite-storage
+5. Network: expo-network → @react-native-community/netinfo
+6. Config: expo-constants → react-native-config
+7. Haptics: expo-haptics → react-native-haptic-feedback
+8. Animations: @legendapp/motion → react-native-reanimated
+9. Entry Point: expo-router/_layout → index.js + App.tsx
+
+=== NATIVE MODULE CONFIGURATION ===
+
+--- react-native-config ---
+Configuration: android/app/build.gradle
+  - Added: apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
+Usage: Reads API_URL from .env file
+
+--- react-native-splash-screen ---
+Configuration:
+  1. android/app/src/main/res/layout/launch_screen.xml - Splash screen layout with Sanderi logo image
+  2. android/app/src/main/res/drawable/splash.png - Actual splash screen image
+  3. android/app/src/main/res/values/colors.xml - Splash background and icon colors
+  4. android/app/src/main/res/values/styles.xml - SplashTheme style
+  5. MainActivity.kt - SplashScreen.show(this) in onCreate()
+  6. AndroidManifest.xml - android:theme="@style/SplashTheme" on MainActivity
+
+--- App Icons ---
+Configuration:
+  Android:
+    1. android/app/src/main/res/mipmap-*/ic_launcher.png - Standard app icons
+    2. android/app/src/main/res/mipmap-*/ic_launcher_round.png - Round app icons
+    3. android/app/src/main/res/mipmap-*/ic_launcher_foreground.png - Adaptive icon foreground
+    4. android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml - Adaptive icon config
+    5. android/app/src/main/res/values/colors.xml - ic_launcher_background color
+  iOS:
+    1. ios/SanderiMobile/Images.xcassets/AppIcon.appiconset/ - App icon configuration
+    2. ios/SanderiMobile/Images.xcassets/SplashImage.imageset/ - Splash image for launch screen
+    3. ios/SanderiMobile/LaunchScreen.storyboard - iOS launch screen with splash image
+
+Usage: App.tsx calls SplashScreen.hide() after initialization
+
+--- react-native-nfc-manager ---
+Configuration: AndroidManifest.xml
+  - Permission: android.permission.NFC
+  - Feature: android.hardware.nfc (required=false)
+  - Intent filters: TAG_DISCOVERED, NDEF_DISCOVERED
+
+--- react-native-biometrics ---
+Configuration: AndroidManifest.xml
+  - Permission: android.permission.USE_BIOMETRIC
+  - Permission: android.permission.USE_FINGERPRINT
+
+--- react-native-haptic-feedback ---
+Configuration: AndroidManifest.xml
+  - Permission: android.permission.VIBRATE
+
+--- @react-native-community/netinfo ---
+Configuration: AndroidManifest.xml
+  - Permission: android.permission.ACCESS_NETWORK_STATE
+
