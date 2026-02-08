@@ -149,7 +149,12 @@ export function useOfflineQueue(): UseOfflineQueueResult {
 
             await saveQueue(currentQueue);
         } catch (error) {
-            console.error('Sync failed:', error);
+            console.error('❌ Sync failed:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+            if (error instanceof Error) {
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+            }
 
             // Revert syncing status to pending
             const stored = await AsyncStorage.getItem(QUEUE_KEY);

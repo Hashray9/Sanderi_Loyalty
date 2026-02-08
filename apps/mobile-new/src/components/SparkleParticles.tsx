@@ -20,10 +20,10 @@ interface Particle {
 }
 
 const PARTICLE_COLORS = [
-    '#2563eb',
-    '#3b82f6',
-    '#60a5fa',
-    '#93c5fd',
+    '#FA0011',
+    '#FF4D5A',
+    '#FF8A92',
+    '#FFB3B8',
     '#ffffff',
 ];
 

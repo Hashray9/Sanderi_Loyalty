@@ -71,6 +71,11 @@ syncRouter.post('/offline-actions', validate(syncSchema), async (req, res, next)
     const { actions } = req.body;
     const { staffId, storeId, franchiseeId } = req.auth!;
 
+    console.log(`\n=== SYNC REQUEST ===`);
+    console.log(`Staff: ${staffId}, Store: ${storeId}, Franchisee: ${franchiseeId}`);
+    console.log(`Actions count: ${actions.length}`);
+    console.log('Actions:', JSON.stringify(actions, null, 2));
+
     // Get store for conversion rates
     const store = await prisma.store.findUnique({ where: { id: storeId } });
     if (!store) {

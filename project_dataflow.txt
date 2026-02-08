@@ -26,25 +26,42 @@ Last Updated: 2026-02-08
 4. API returns card status, points, holder info, expiring points
 5. App displays card information
 
-=== POINT CREDIT FLOW ===
+=== POINT CREDIT FLOW (via Offline Queue) ===
 
-1. Staff scans card and enters transaction amount
-2. App generates unique entryId (idempotency key)
-3. App sends POST /api/points/credit
-4. API calculates points based on store conversion rate
-5. API creates PointEntry record with CREDIT type
-6. API updates Card.hardwarePoints or Card.plywoodPoints
-7. Response returns new point balance
+1. Staff selects card and category (HARDWARE/PLYWOOD)
+2. Staff taps "Credit" and enters transaction amount
+3. App generates unique UUID entryId (idempotency key)
+4. App adds action to offline queue with:
+   - actionType: 'CREDIT'
+   - entryId: UUID
+   - cardUid, category, amount
+5. Queue immediately syncs if online via POST /api/sync/offline-actions
+6. API validates:
+   - entryId is valid UUID format
+   - Card exists and belongs to franchisee
+   - Card status is ACTIVE
+7. API calculates points based on store conversion rate
+8. API creates PointEntry record with CREDIT type
+9. API updates Card.hardwarePoints or Card.plywoodPoints
+10. API marks entryId as processed (idempotency)
+11. Response includes success/failure for each action
+12. App updates queue status and refetches card balance
 
-=== POINT DEBIT FLOW ===
+=== POINT DEBIT FLOW (via Offline Queue) ===
 
-1. Staff scans card and enters redemption amount
-2. App generates unique entryId
-3. App sends POST /api/points/debit
-4. API validates sufficient points available
-5. API creates PointEntry record with DEBIT type
-6. API updates Card point balance (decrement)
-7. Response returns new point balance
+1. Staff selects card and category
+2. Staff taps "Debit" and enters points to redeem
+3. App generates unique UUID entryId
+4. App adds action to offline queue with:
+   - actionType: 'DEBIT'
+   - entryId: UUID
+   - cardUid, category, points
+5. Queue syncs via POST /api/sync/offline-actions
+6. API validates sufficient balance using FIFO
+7. API creates PointEntry record with DEBIT type
+8. API updates Card point balance (decrement)
+9. Response returns new point balance
+10. App updates queue status and refetches card balance
 
 === CARD ENROLLMENT FLOW ===
 

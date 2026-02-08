@@ -1,8 +1,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { Nfc, Search, Settings } from 'lucide-react-native';
 import ScanScreen from '@/screens/ScanScreen';
 import LookupScreen from '@/screens/LookupScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
@@ -16,8 +16,9 @@ export type AppTabsParamList = {
 const Tab = createBottomTabNavigator<AppTabsParamList>();
 
 export default function AppTabs() {
-    const { colors } = useTheme();
+    const { colors, colorScheme } = useTheme();
     const { t } = useTranslation();
+    const isDark = colorScheme === 'dark';
 
     return (
         <Tab.Navigator
@@ -26,8 +27,15 @@ export default function AppTabs() {
                 tabBarActiveTintColor: colors.primary,
                 tabBarInactiveTintColor: colors.textSecondary,
                 tabBarStyle: {
-                    backgroundColor: colors.card,
-                    borderTopColor: colors.border,
+                    backgroundColor: isDark ? '#111111' : '#ffffff',
+                    borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                    borderTopWidth: 1,
+                    paddingTop: 4,
+                    height: 60,
+                },
+                tabBarLabelStyle: {
+                    fontSize: 11,
+                    fontWeight: '500',
                 },
             }}
         >
@@ -36,7 +44,9 @@ export default function AppTabs() {
                 component={ScanScreen}
                 options={{
                     tabBarLabel: t('tabs.scan'),
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📱</Text>,
+                    tabBarIcon: ({ color, size }) => (
+                        <Nfc size={size} color={color} strokeWidth={1.8} />
+                    ),
                 }}
             />
             <Tab.Screen
@@ -44,7 +54,9 @@ export default function AppTabs() {
                 component={LookupScreen}
                 options={{
                     tabBarLabel: t('tabs.lookup'),
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🔍</Text>,
+                    tabBarIcon: ({ color, size }) => (
+                        <Search size={size} color={color} strokeWidth={1.8} />
+                    ),
                 }}
             />
             <Tab.Screen
@@ -52,7 +64,9 @@ export default function AppTabs() {
                 component={SettingsScreen}
                 options={{
                     tabBarLabel: t('tabs.settings'),
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>⚙️</Text>,
+                    tabBarIcon: ({ color, size }) => (
+                        <Settings size={size} color={color} strokeWidth={1.8} />
+                    ),
                 }}
             />
         </Tab.Navigator>

@@ -13,11 +13,14 @@ export class AppError extends Error {
 
 export function errorHandler(
   err: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void {
-  console.error('Error:', err);
+  console.error('=== ERROR ===');
+  console.error(`${req.method} ${req.path}`);
+  console.error('Error:', err.message);
+  console.error('Stack:', err.stack);
 
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
