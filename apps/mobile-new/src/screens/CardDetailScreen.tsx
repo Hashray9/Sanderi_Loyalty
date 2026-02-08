@@ -90,12 +90,19 @@ export default function CardDetailScreen() {
 
     const handleCreditDone = useCallback(
         async (amount: number) => {
-            if (!selectedCategory) return;
+            console.log('💳 handleCreditDone called with amount:', amount);
+            console.log('💳 selectedCategory:', selectedCategory);
+            if (!selectedCategory) {
+                console.log('💳 No category selected, returning');
+                return;
+            }
 
             const rate = conversionRate(selectedCategory);
             const points = Math.floor(amount / rate);
+            console.log('💳 Rate:', rate, 'Points:', points);
 
             try {
+                console.log('💳 Calling addAction...');
                 await addAction({
                     entryId: uuidv4(),
                     actionType: 'CREDIT',
@@ -105,6 +112,7 @@ export default function CardDetailScreen() {
                         amount,
                     },
                 });
+                console.log('💳 addAction completed successfully');
 
                 setMode('idle');
                 setSelectedCategory(null);
@@ -113,7 +121,8 @@ export default function CardDetailScreen() {
 
                 // Refetch balances
                 setTimeout(fetchCard, 1600);
-            } catch {
+            } catch (error) {
+                console.error('💳 handleCreditDone error:', error);
                 Alert.alert(t('common.error'), t('credit.failed'));
             }
         },
