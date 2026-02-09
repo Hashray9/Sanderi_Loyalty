@@ -1,7 +1,7 @@
 ============================================================
          SANDERI LOYALTY - TECHNICAL CONCEPTS USED
 ============================================================
-Last Updated: 2026-02-08
+Last Updated: 2026-02-09
 
 === BACKEND (packages/api) ===
 
@@ -10,6 +10,12 @@ Last Updated: 2026-02-08
 - TypeScript: Type-safe JavaScript
 - Prisma ORM: Database abstraction and migrations
 - PostgreSQL: Relational database
+- Railway: Cloud hosting for API and Database
+
+--- Deployment ---
+- Build Step: `prisma generate && tsc` ensures types are ready for the build
+- Root Directory: Configured as `packages/api` for monorepo support
+- Nixpacks: Used by Railway for automated builds
 
 --- Authentication ---
 - JWT (jsonwebtoken): Token-based authentication

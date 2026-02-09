@@ -1,7 +1,7 @@
 ============================================================
               SANDERI LOYALTY - PROJECT DATAFLOW
 ============================================================
-Last Updated: 2026-02-08
+Last Updated: 2026-02-09
 
 === SYSTEM ARCHITECTURE OVERVIEW ===
 
@@ -9,6 +9,13 @@ Last Updated: 2026-02-08
 │  Mobile App     │────▶│   API Server    │────▶│   PostgreSQL    │
 │  (React Native) │     │   (Express)     │     │   (Prisma ORM)  │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
+
+=== DEPLOYED ARCHITECTURE (Production) ===
+
+┌─────────────────┐     ┌──────────────────────┐     ┌──────────────────┐
+│  Mobile App     │────▶│   Railway API        │────▶│ Railway Postgres │
+│  (Production)   │     │   (Node.js/Express)  │     │ (Internal Network)│
+└─────────────────┘     └──────────────────────┘     └──────────────────┘
 
 === AUTHENTICATION FLOW ===
 
@@ -100,5 +107,6 @@ Last Updated: 2026-02-08
 === EXTERNAL SERVICES ===
 
 - ngrok: Tunnel for local development (API access from phone)
+- Railway: Production hosting for API service and PostgreSQL database
 
 ============================================================

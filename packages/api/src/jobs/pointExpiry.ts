@@ -43,7 +43,6 @@ export async function processPointExpiry(): Promise<{
             staffId: entry.staffId, // Use original staff for audit
             category: entry.category,
             transactionType: TransactionType.EXPIRY,
-            amount: 0,
             pointsDelta: -pointsToExpire,
           },
         });

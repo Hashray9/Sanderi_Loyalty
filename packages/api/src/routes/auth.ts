@@ -52,7 +52,7 @@ authRouter.post('/login', validate(loginSchema), async (req, res, next) => {
         role: staff.role,
       },
       secret,
-      { expiresIn }
+      { expiresIn: expiresIn as any }
     );
 
     res.json({
