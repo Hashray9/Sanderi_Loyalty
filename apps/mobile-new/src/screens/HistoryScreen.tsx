@@ -19,7 +19,6 @@ interface PointEntry {
     entryId: string;
     category: 'HARDWARE' | 'PLYWOOD';
     transactionType: 'CREDIT' | 'DEBIT' | 'EXPIRY' | 'VOID' | 'TRANSFER';
-    amount: number;
     pointsDelta: number;
     storeName: string;
     staffName: string;
@@ -143,15 +142,9 @@ export default function HistoryScreen() {
                     </Text>
                 </View>
 
-                {item.amount > 0 && (
-                    <Text style={[styles.amount, { color: colors.textSecondary }]}>
-                        {t('history.purchaseAmount')}: ₹{item.amount}
-                    </Text>
-                )}
-
                 <View style={styles.itemFooter}>
                     <Text style={[styles.meta, { color: colors.textSecondary }]}>
-                        {item.staffName} @ {item.storeName}
+                        {item.staffName}
                     </Text>
                     <Text style={[styles.date, { color: colors.textSecondary }]}>
                         {new Date(item.createdAt).toLocaleDateString()}
@@ -298,10 +291,6 @@ const styles = StyleSheet.create({
     points: {
         fontSize: 20,
         fontWeight: 'bold',
-    },
-    amount: {
-        fontSize: 13,
-        marginBottom: 8,
     },
     itemFooter: {
         flexDirection: 'row',

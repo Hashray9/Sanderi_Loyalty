@@ -128,7 +128,6 @@ model PointEntry {
   staffId         String
   category        PointCategory
   transactionType TransactionType
-  amount          Int // Original transaction amount in ₹
   pointsDelta     Int // Points added/removed (can be negative)
   pointsRemaining Int? // For FIFO tracking: points still available from this entry
   expiresAt       DateTime? // 12 months from creation for CREDIT entries

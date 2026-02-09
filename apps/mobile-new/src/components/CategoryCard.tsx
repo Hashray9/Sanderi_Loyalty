@@ -1,8 +1,6 @@
 import React from 'react';
-import { Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useTranslation } from 'react-i18next';
 
 interface CategoryCardProps {
     category: 'HARDWARE' | 'PLYWOOD';
@@ -12,71 +10,78 @@ interface CategoryCardProps {
 }
 
 export function CategoryCard({ category, points, isSelected, onPress }: CategoryCardProps) {
-    const { colors } = useTheme();
-    const { t } = useTranslation();
+    const { colorScheme } = useTheme();
 
-    const animatedStyle = useAnimatedStyle(() => {
-        return {
-            transform: [{ scale: withSpring(isSelected ? 1.02 : 1, { damping: 20, stiffness: 300 }) }],
-        };
-    });
+    const isDark = colorScheme === 'dark';
+
+    const textPrimary = isDark ? '#f5f0eb' : '#1a1510';
+    const textSecondary = isDark ? '#8a7e72' : '#7a6e62';
 
     return (
-        <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.touchable}>
-            <Animated.View
-                style={[
-                    styles.card,
-                    {
-                        backgroundColor: colors.card,
-                        borderColor: isSelected ? colors.primary : colors.border,
-                        borderWidth: isSelected ? 2 : 1,
-                        shadowColor: '#000',
-                    },
-                    animatedStyle,
-                ]}
-            >
-                <Text
+        <View style={styles.wrapper}>
+            <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.touchable}>
+                <View
                     style={[
-                        styles.categoryLabel,
-                        { color: isSelected ? colors.primary : colors.text },
+                        styles.card,
+                        {
+                            backgroundColor: isDark
+                                ? 'rgba(255,255,255,0.06)'
+                                : 'rgba(0,0,0,0.04)',
+                            borderColor: isSelected
+                                ? '#FA0011'
+                                : isDark
+                                    ? 'rgba(255,255,255,0.08)'
+                                    : 'rgba(0,0,0,0.06)',
+                            borderWidth: isSelected ? 2 : 1,
+                        },
                     ]}
                 >
-                    {category}
-                </Text>
-                <Text style={[styles.pointsLabel, { color: colors.textSecondary }]}>
-                    {t('card.totalPoints')}
-                </Text>
-                <Text style={[styles.pointsValue, { color: colors.text }]}>{points}</Text>
-            </Animated.View>
-        </TouchableOpacity>
+                    <Text
+                        style={[
+                            styles.categoryLabel,
+                            { color: isSelected ? '#FA0011' : textSecondary },
+                        ]}
+                    >
+                        {category}
+                    </Text>
+                    <Text style={[styles.pointsLabel, { color: textSecondary }]}>
+                        TOTAL POINTS
+                    </Text>
+                    <Text style={[styles.pointsValue, { color: textPrimary }]}>{points}</Text>
+                </View>
+            </TouchableOpacity>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    wrapper: {
+        flex: 1,
+    },
     touchable: {
         flex: 1,
     },
     card: {
-        borderRadius: 16,
-        padding: 20,
-        alignItems: 'center',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 4,
+        flex: 1,
+        borderRadius: 18,
+        paddingVertical: 24,
+        paddingHorizontal: 20,
+        justifyContent: 'center',
     },
     categoryLabel: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '700',
-        letterSpacing: 1,
-        marginBottom: 12,
+        letterSpacing: 1.5,
+        marginBottom: 8,
     },
     pointsLabel: {
-        fontSize: 12,
-        marginBottom: 4,
+        fontSize: 11,
+        fontWeight: '600',
+        letterSpacing: 0.8,
+        marginBottom: 6,
     },
     pointsValue: {
-        fontSize: 32,
-        fontWeight: 'bold',
+        fontSize: 40,
+        fontWeight: '800',
     },
 });

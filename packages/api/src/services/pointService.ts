@@ -62,7 +62,6 @@ export async function creditPoints(params: CreditPointsParams): Promise<{
         staffId,
         category,
         transactionType: TransactionType.CREDIT,
-        amount,
         pointsDelta,
         pointsRemaining: pointsDelta,
         expiresAt,
@@ -169,7 +168,6 @@ export async function debitPointsFIFO(params: DebitPointsParams): Promise<{
         staffId,
         category,
         transactionType: TransactionType.DEBIT,
-        amount: 0, // Debits don't have a transaction amount
         pointsDelta: -pointsToDebit,
       },
     });
@@ -244,7 +242,6 @@ export async function voidTransaction(
         staffId,
         category: entry.category,
         transactionType: TransactionType.VOID,
-        amount: entry.amount,
         pointsDelta: -entry.pointsDelta, // Reverse the delta
       },
     });
@@ -323,7 +320,6 @@ export async function transferPoints(
           staffId,
           category: PointCategory.HARDWARE,
           transactionType: TransactionType.TRANSFER,
-          amount: 0,
           pointsDelta: -oldCard.hardwarePoints,
         },
       });
@@ -336,7 +332,6 @@ export async function transferPoints(
           staffId,
           category: PointCategory.HARDWARE,
           transactionType: TransactionType.TRANSFER,
-          amount: 0,
           pointsDelta: oldCard.hardwarePoints,
           pointsRemaining: oldCard.hardwarePoints,
           expiresAt: getExpiryDate(), // New expiry for transferred points
@@ -354,7 +349,6 @@ export async function transferPoints(
           staffId,
           category: PointCategory.PLYWOOD,
           transactionType: TransactionType.TRANSFER,
-          amount: 0,
           pointsDelta: -oldCard.plywoodPoints,
         },
       });
@@ -367,7 +361,6 @@ export async function transferPoints(
           staffId,
           category: PointCategory.PLYWOOD,
           transactionType: TransactionType.TRANSFER,
-          amount: 0,
           pointsDelta: oldCard.plywoodPoints,
           pointsRemaining: oldCard.plywoodPoints,
           expiresAt: getExpiryDate(),

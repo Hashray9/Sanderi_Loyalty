@@ -8,9 +8,12 @@ import {
     ActivityIndicator,
     Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
+import LinearGradient from 'react-native-linear-gradient';
+import { X, PlusCircle, MinusCircle } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -21,6 +24,9 @@ import { AmountInput } from '@/components/AmountInput';
 import { CardBottomBar } from '@/components/CardBottomBar';
 import { SuccessOverlay } from '@/components/SuccessOverlay';
 import { BlockConfirmDialog } from '@/components/BlockConfirmDialog';
+
+const DARK_GRADIENT = ['#050505', '#1c150e', '#18101e', '#0a0a0a'];
+const LIGHT_GRADIENT = ['#faf8f5', '#f5ede4', '#f0eaf2', '#f8f6f4'];
 
 interface CardData {
     cardUid: string;
@@ -45,9 +51,11 @@ export default function CardDetailScreen() {
     const navigation = useNavigation<any>();
     const { cardUid } = route.params;
     const { t } = useTranslation();
-    const { colors } = useTheme();
+    const { colorScheme } = useTheme();
     const { store } = useAuth();
     const { addAction } = useOfflineQueue();
+
+    const isDark = colorScheme === 'dark';
 
     const [card, setCard] = useState<CardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -57,6 +65,9 @@ export default function CardDetailScreen() {
     const [successMessage, setSuccessMessage] = useState('');
     const [showBlockDialog, setShowBlockDialog] = useState(false);
     const [isBlocking, setIsBlocking] = useState(false);
+
+    const textPrimary = isDark ? '#f5f0eb' : '#1a1510';
+    const textSecondary = isDark ? '#8a7e72' : '#7a6e62';
 
     const fetchCard = useCallback(async () => {
         try {
@@ -73,7 +84,6 @@ export default function CardDetailScreen() {
         fetchCard();
     }, [fetchCard]);
 
-    // Auto-redirect to enroll for unassigned cards
     useEffect(() => {
         if (card && card.status === 'UNASSIGNED') {
             navigation.navigate('Enroll', { cardUid });
@@ -90,19 +100,12 @@ export default function CardDetailScreen() {
 
     const handleCreditDone = useCallback(
         async (amount: number) => {
-            console.log('💳 handleCreditDone called with amount:', amount);
-            console.log('💳 selectedCategory:', selectedCategory);
-            if (!selectedCategory) {
-                console.log('💳 No category selected, returning');
-                return;
-            }
+            if (!selectedCategory) return;
 
             const rate = conversionRate(selectedCategory);
             const points = Math.floor(amount / rate);
-            console.log('💳 Rate:', rate, 'Points:', points);
 
             try {
-                console.log('💳 Calling addAction...');
                 await addAction({
                     entryId: uuidv4(),
                     actionType: 'CREDIT',
@@ -112,17 +115,13 @@ export default function CardDetailScreen() {
                         amount,
                     },
                 });
-                console.log('💳 addAction completed successfully');
 
                 setMode('idle');
                 setSelectedCategory(null);
                 setSuccessMessage(t('credit.successMessage', { points }));
                 setShowSuccess(true);
-
-                // Refetch balances
                 setTimeout(fetchCard, 1600);
-            } catch (error) {
-                console.error('💳 handleCreditDone error:', error);
+            } catch {
                 Alert.alert(t('common.error'), t('credit.failed'));
             }
         },
@@ -148,7 +147,6 @@ export default function CardDetailScreen() {
                 setSelectedCategory(null);
                 setSuccessMessage(t('debit.successMessage', { points }));
                 setShowSuccess(true);
-
                 setTimeout(fetchCard, 1600);
             } catch {
                 Alert.alert(t('common.error'), t('debit.failed'));
@@ -172,7 +170,6 @@ export default function CardDetailScreen() {
             setShowBlockDialog(false);
             setSuccessMessage(t('block.successMessage'));
             setShowSuccess(true);
-
             setTimeout(() => navigation.goBack(), 1600);
         } catch {
             Alert.alert(t('common.error'), t('block.failed'));
@@ -183,19 +180,27 @@ export default function CardDetailScreen() {
 
     if (isLoading) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-                <ActivityIndicator size="large" color={colors.primary} />
-            </View>
+            <LinearGradient
+                colors={isDark ? DARK_GRADIENT : LIGHT_GRADIENT}
+                locations={[0, 0.35, 0.65, 1]}
+                style={styles.loadingContainer}
+            >
+                <ActivityIndicator size="large" color="#FA0011" />
+            </LinearGradient>
         );
     }
 
     if (!card) {
         return (
-            <View style={[styles.container, { backgroundColor: colors.background }]}>
-                <Text style={[styles.errorText, { color: colors.error }]}>
+            <LinearGradient
+                colors={isDark ? DARK_GRADIENT : LIGHT_GRADIENT}
+                locations={[0, 0.35, 0.65, 1]}
+                style={styles.container}
+            >
+                <Text style={[styles.errorText, { color: '#ef4444' }]}>
                     {t('card.notFound')}
                 </Text>
-            </View>
+            </LinearGradient>
         );
     }
 
@@ -209,123 +214,165 @@ export default function CardDetailScreen() {
                 : 0;
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-            >
-                {/* Top bar */}
-                <View style={styles.topBar}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-                        <Text style={[styles.closeIcon, { color: colors.text }]}>✕</Text>
-                    </TouchableOpacity>
-                    {card.holder && (
-                        <View style={styles.holderInfo}>
-                            <Text style={[styles.holderName, { color: colors.text }]}>
-                                {card.holder.name}
-                            </Text>
-                            <Text style={[styles.holderMobile, { color: colors.textSecondary }]}>
-                                {card.holder.mobileNumber}
+        <LinearGradient
+            colors={isDark ? DARK_GRADIENT : LIGHT_GRADIENT}
+            locations={[0, 0.35, 0.65, 1]}
+            style={styles.container}
+        >
+            <SafeAreaView style={styles.container}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Top bar */}
+                    <View style={styles.topBar}>
+                        <TouchableOpacity
+                            onPress={() => navigation.goBack()}
+                            style={styles.closeButton}
+                            activeOpacity={0.7}
+                        >
+                            <X size={24} color={textSecondary} strokeWidth={2} />
+                        </TouchableOpacity>
+                        {card.holder && (
+                            <View style={styles.holderInfo}>
+                                <Text style={[styles.holderName, { color: textPrimary }]}>
+                                    {card.holder.name}
+                                </Text>
+                                <Text style={[styles.holderMobile, { color: textSecondary }]}>
+                                    {card.holder.mobileNumber}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Blocked notice */}
+                    {isBlocked && (
+                        <View style={[
+                            styles.blockedNotice,
+                            {
+                                backgroundColor: isDark
+                                    ? 'rgba(239,68,68,0.10)'
+                                    : 'rgba(239,68,68,0.08)',
+                                borderColor: isDark
+                                    ? 'rgba(239,68,68,0.20)'
+                                    : 'rgba(239,68,68,0.15)',
+                            },
+                        ]}>
+                            <Text style={styles.blockedText}>
+                                {t('card.blockedMessage')}
                             </Text>
                         </View>
                     )}
-                </View>
 
-                {/* Blocked notice */}
-                {isBlocked && (
-                    <View style={[styles.blockedNotice, { backgroundColor: colors.error + '15' }]}>
-                        <Text style={[styles.blockedText, { color: colors.error }]}>
-                            {t('card.blockedMessage')}
-                        </Text>
-                    </View>
-                )}
+                    {/* Category cards */}
+                    {isActive && (
+                        <View style={styles.categoryRow}>
+                            <CategoryCard
+                                category="HARDWARE"
+                                points={card.hardwarePoints}
+                                isSelected={selectedCategory === 'HARDWARE'}
+                                onPress={() => {
+                                    setSelectedCategory(
+                                        selectedCategory === 'HARDWARE' ? null : 'HARDWARE'
+                                    );
+                                    setMode('idle');
+                                }}
+                            />
+                            <CategoryCard
+                                category="PLYWOOD"
+                                points={card.plywoodPoints}
+                                isSelected={selectedCategory === 'PLYWOOD'}
+                                onPress={() => {
+                                    setSelectedCategory(
+                                        selectedCategory === 'PLYWOOD' ? null : 'PLYWOOD'
+                                    );
+                                    setMode('idle');
+                                }}
+                            />
+                        </View>
+                    )}
 
-                {/* Category cards */}
-                {isActive && (
-                    <View style={styles.categoryRow}>
-                        <CategoryCard
-                            category="HARDWARE"
-                            points={card.hardwarePoints}
-                            isSelected={selectedCategory === 'HARDWARE'}
-                            onPress={() => {
-                                setSelectedCategory(
-                                    selectedCategory === 'HARDWARE' ? null : 'HARDWARE'
-                                );
-                                setMode('idle');
-                            }}
-                        />
-                        <CategoryCard
-                            category="PLYWOOD"
-                            points={card.plywoodPoints}
-                            isSelected={selectedCategory === 'PLYWOOD'}
-                            onPress={() => {
-                                setSelectedCategory(
-                                    selectedCategory === 'PLYWOOD' ? null : 'PLYWOOD'
-                                );
-                                setMode('idle');
-                            }}
-                        />
-                    </View>
-                )}
-
-                {/* Credit/Debit buttons */}
-                {isActive && selectedCategory && mode === 'idle' && (
-                    <Animated.View
-                        entering={FadeInDown.springify().damping(20).stiffness(200)}
-                        exiting={FadeOutDown}
-                        style={styles.actionRow}
-                    >
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: colors.success }]}
-                            onPress={() => setMode('credit')}
+                    {/* Credit / Debit action buttons */}
+                    {isActive && selectedCategory && mode === 'idle' && (
+                        <Animated.View
+                            entering={FadeInDown.springify().damping(20).stiffness(200)}
+                            exiting={FadeOutDown}
+                            style={styles.actionRow}
                         >
-                            <Text style={styles.actionButtonText}>{t('card.credit')}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: colors.primary }]}
-                            onPress={() => setMode('debit')}
-                        >
-                            <Text style={styles.actionButtonText}>{t('card.debit')}</Text>
-                        </TouchableOpacity>
-                    </Animated.View>
-                )}
+                            <TouchableOpacity
+                                style={styles.actionTouchable}
+                                onPress={() => setMode('credit')}
+                                activeOpacity={0.85}
+                            >
+                                <LinearGradient
+                                    colors={['#22c55e', '#16a34a']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.actionCard}
+                                >
+                                    <PlusCircle size={32} color="#fff" strokeWidth={1.8} />
+                                    <Text style={styles.actionButtonText}>
+                                        {t('card.credit').toUpperCase()}
+                                    </Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.actionTouchable}
+                                onPress={() => setMode('debit')}
+                                activeOpacity={0.85}
+                            >
+                                <LinearGradient
+                                    colors={['#FA0011', '#c5000d']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.actionCard}
+                                >
+                                    <MinusCircle size={32} color="#fff" strokeWidth={1.8} />
+                                    <Text style={styles.actionButtonText}>
+                                        {t('card.debit').toUpperCase()}
+                                    </Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    )}
 
-                {/* Amount input */}
-                {selectedCategory && (mode === 'credit' || mode === 'debit') && (
-                    <AmountInput
-                        key={`input-${mode}`}
-                        mode={mode}
-                        category={selectedCategory}
-                        currentBalance={currentBalance}
-                        conversionRate={conversionRate(selectedCategory)}
-                        onDone={mode === 'credit' ? handleCreditDone : handleDebitDone}
-                        onCancel={() => setMode('idle')}
-                    />
-                )}
-            </ScrollView>
+                    {/* Amount input */}
+                    {selectedCategory && (mode === 'credit' || mode === 'debit') && (
+                        <AmountInput
+                            key={`input-${mode}`}
+                            mode={mode}
+                            category={selectedCategory}
+                            currentBalance={currentBalance}
+                            conversionRate={conversionRate(selectedCategory)}
+                            onDone={mode === 'credit' ? handleCreditDone : handleDebitDone}
+                            onCancel={() => setMode('idle')}
+                        />
+                    )}
+                </ScrollView>
 
-            {/* Bottom bar */}
-            <CardBottomBar
-                cardUid={cardUid!}
-                onBlock={() => setShowBlockDialog(true)}
-                showBlock={isActive}
-            />
+                {/* Bottom bar */}
+                <CardBottomBar
+                    cardUid={cardUid!}
+                    onBlock={() => setShowBlockDialog(true)}
+                    showBlock={isActive}
+                />
 
-            {/* Block confirm dialog */}
-            <BlockConfirmDialog
-                visible={showBlockDialog}
-                onConfirm={handleBlock}
-                onCancel={() => setShowBlockDialog(false)}
-                isLoading={isBlocking}
-            />
+                {/* Block confirm dialog */}
+                <BlockConfirmDialog
+                    visible={showBlockDialog}
+                    onConfirm={handleBlock}
+                    onCancel={() => setShowBlockDialog(false)}
+                    isLoading={isBlocking}
+                />
 
-            {/* Success overlay */}
-            <SuccessOverlay
-                visible={showSuccess}
-                message={successMessage}
-                onDismiss={() => setShowSuccess(false)}
-            />
-        </View>
+                {/* Success overlay */}
+                <SuccessOverlay
+                    visible={showSuccess}
+                    message={successMessage}
+                    onDismiss={() => setShowSuccess(false)}
+                />
+            </SafeAreaView>
+        </LinearGradient>
     );
 }
 
@@ -344,72 +391,74 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     scrollContent: {
-        paddingBottom: 100,
-        paddingTop: 16,
+        paddingBottom: 120,
+        paddingTop: 8,
     },
     topBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingTop: 48,
-        marginBottom: 24,
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        marginBottom: 28,
     },
     closeButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    closeIcon: {
-        fontSize: 20,
-        fontWeight: '300',
     },
     holderInfo: {
         flex: 1,
         alignItems: 'flex-end',
     },
     holderName: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 22,
+        fontWeight: '800',
     },
     holderMobile: {
-        fontSize: 13,
+        fontSize: 14,
         marginTop: 2,
     },
     blockedNotice: {
-        marginHorizontal: 16,
+        marginHorizontal: 20,
         padding: 16,
-        borderRadius: 12,
-        marginBottom: 16,
+        borderRadius: 14,
+        borderWidth: 1,
+        marginBottom: 20,
     },
     blockedText: {
         fontSize: 14,
         textAlign: 'center',
-        fontWeight: '500',
+        fontWeight: '600',
+        color: '#ef4444',
     },
     categoryRow: {
         flexDirection: 'row',
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         gap: 12,
-        marginBottom: 16,
+        marginBottom: 20,
     },
     actionRow: {
         flexDirection: 'row',
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         gap: 12,
-        marginTop: 8,
+        marginTop: 4,
     },
-    actionButton: {
+    actionTouchable: {
         flex: 1,
-        height: 52,
-        borderRadius: 14,
-        justifyContent: 'center',
+    },
+    actionCard: {
+        borderRadius: 18,
+        paddingVertical: 28,
         alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
     },
     actionButtonText: {
         color: '#fff',
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '800',
+        letterSpacing: 1,
     },
 });

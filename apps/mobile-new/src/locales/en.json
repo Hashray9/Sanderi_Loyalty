@@ -170,7 +170,6 @@
     "void": "Void",
     "amount": "Amount",
     "points": "Points",
-    "purchaseAmount": "Purchase amount",
     "noTransactions": "No transactions found"
   },
   "settings": {

@@ -289,7 +289,9 @@ const historySchema = z.object({
 cardsRouter.get('/:cardUid/history', validate(historySchema), async (req, res, next) => {
   try {
     const { cardUid } = req.params;
-    const { limit, offset, category } = req.query as { limit: number; offset: number; category?: string };
+    const limit = parseInt(req.query.limit as string || '20', 10);
+    const offset = parseInt(req.query.offset as string || '0', 10);
+    const category = req.query.category as string | undefined;
     const { franchiseeId } = req.auth!;
 
     const card = await prisma.card.findUnique({
@@ -333,7 +335,6 @@ cardsRouter.get('/:cardUid/history', validate(historySchema), async (req, res, n
         entryId: e.entryId,
         category: e.category,
         transactionType: e.transactionType,
-        amount: e.amount,
         pointsDelta: e.pointsDelta,
         storeName: e.store.name,
         staffName: e.staff.name,

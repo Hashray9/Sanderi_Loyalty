@@ -167,69 +167,50 @@ export default function ScanScreen() {
                     styles.bottomBar,
                     {
                         backgroundColor: isDark
-                            ? 'rgba(10,10,10,0.85)'
-                            : 'rgba(240,238,235,0.9)',
-                        borderTopColor: isDark
-                            ? 'rgba(255,255,255,0.06)'
+                            ? 'rgba(255,255,255,0.05)'
+                            : 'rgba(0,0,0,0.04)',
+                        borderColor: isDark
+                            ? 'rgba(255,255,255,0.08)'
                             : 'rgba(0,0,0,0.06)',
                     },
                 ]}>
-                    <QuickAction
-                        icon={<Search size={22} color={textSecondary} strokeWidth={1.8} />}
-                        label={t('tabs.lookup').toUpperCase()}
-                        textColor={textSecondary}
-                        isDark={isDark}
+                    <TouchableOpacity
+                        style={[
+                            styles.quickActionButton,
+                            {
+                                backgroundColor: isDark
+                                    ? 'rgba(255,255,255,0.06)'
+                                    : 'rgba(0,0,0,0.04)',
+                            },
+                        ]}
                         onPress={() => navigation.navigate('Lookup')}
-                    />
-                    <QuickAction
-                        icon={<Settings size={22} color={textSecondary} strokeWidth={1.8} />}
-                        label={t('tabs.settings').toUpperCase()}
-                        textColor={textSecondary}
-                        isDark={isDark}
+                        activeOpacity={0.7}
+                    >
+                        <Search size={18} color={isDark ? '#c0b8ae' : '#5a5048'} strokeWidth={2} />
+                        <Text style={[styles.quickActionText, { color: isDark ? '#c0b8ae' : '#5a5048' }]}>
+                            {t('tabs.lookup')}
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[
+                            styles.quickActionButton,
+                            {
+                                backgroundColor: isDark
+                                    ? 'rgba(255,255,255,0.06)'
+                                    : 'rgba(0,0,0,0.04)',
+                            },
+                        ]}
                         onPress={() => navigation.navigate('Settings')}
-                    />
+                        activeOpacity={0.7}
+                    >
+                        <Settings size={18} color={isDark ? '#c0b8ae' : '#5a5048'} strokeWidth={2} />
+                        <Text style={[styles.quickActionText, { color: isDark ? '#c0b8ae' : '#5a5048' }]}>
+                            {t('tabs.settings')}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
             </SafeAreaView>
         </LinearGradient>
-    );
-}
-
-function QuickAction({
-    icon,
-    label,
-    textColor,
-    isDark,
-    onPress,
-}: {
-    icon: React.ReactNode;
-    label: string;
-    textColor: string;
-    isDark: boolean;
-    onPress: () => void;
-}) {
-    return (
-        <TouchableOpacity
-            style={styles.quickActionItem}
-            onPress={onPress}
-            activeOpacity={0.7}
-        >
-            <View style={[
-                styles.quickActionCircle,
-                {
-                    backgroundColor: isDark
-                        ? 'rgba(255,255,255,0.08)'
-                        : 'rgba(0,0,0,0.06)',
-                    borderColor: isDark
-                        ? 'rgba(255,255,255,0.12)'
-                        : 'rgba(0,0,0,0.10)',
-                },
-            ]}>
-                {icon}
-            </View>
-            <Text style={[styles.quickActionLabel, { color: textColor }]}>
-                {label}
-            </Text>
-        </TouchableOpacity>
     );
 }
 
@@ -310,29 +291,26 @@ const styles = StyleSheet.create({
     },
     bottomBar: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        paddingTop: 16,
-        paddingBottom: 12,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        paddingBottom: 32,
+        gap: 12,
         borderTopWidth: 1,
+        borderRadius: 24,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
     },
-    quickActionItem: {
-        alignItems: 'center',
-        gap: 8,
+    quickActionButton: {
         flex: 1,
-    },
-    quickActionCircle: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        borderWidth: 1,
-        overflow: 'hidden',
+        height: 50,
+        borderRadius: 14,
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
+        gap: 8,
     },
-    quickActionLabel: {
-        fontSize: 11,
-        fontWeight: '600',
-        letterSpacing: 0.5,
+    quickActionText: {
+        fontSize: 14,
+        fontWeight: '700',
     },
 });
