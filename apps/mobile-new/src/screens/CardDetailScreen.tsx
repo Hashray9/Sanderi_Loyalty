@@ -59,6 +59,7 @@ export default function CardDetailScreen() {
 
     const [card, setCard] = useState<CardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [cardNotFound, setCardNotFound] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [mode, setMode] = useState<Mode>('idle');
     const [showSuccess, setShowSuccess] = useState(false);
@@ -73,8 +74,14 @@ export default function CardDetailScreen() {
         try {
             const response = await api.get(`/cards/${cardUid}/status`);
             setCard(response.data);
-        } catch {
-            Alert.alert(t('common.error'), t('card.fetchFailed'));
+            setCardNotFound(false);
+        } catch (error: any) {
+            // If card not found (404), show not found screen
+            if (error?.response?.status === 404 || error?.response?.data?.code === 'CARD_NOT_FOUND') {
+                setCardNotFound(true);
+            } else {
+                Alert.alert(t('common.error'), t('card.fetchFailed'));
+            }
         } finally {
             setIsLoading(false);
         }
@@ -190,18 +197,59 @@ export default function CardDetailScreen() {
         );
     }
 
-    if (!card) {
+    if (cardNotFound) {
         return (
             <LinearGradient
                 colors={isDark ? DARK_GRADIENT : LIGHT_GRADIENT}
                 locations={[0, 0.35, 0.65, 1]}
                 style={styles.container}
             >
-                <Text style={[styles.errorText, { color: '#ef4444' }]}>
-                    {t('card.notFound')}
-                </Text>
+                <SafeAreaView style={styles.notFoundContainer}>
+                    <View style={styles.notFoundContent}>
+                        <Text style={[styles.notFoundTitle, { color: textPrimary }]}>
+                            {t('card.notFound')}
+                        </Text>
+                        <Text style={[styles.notFoundMessage, { color: textSecondary }]}>
+                            {t('card.notFoundMessage')}
+                        </Text>
+                        <Text style={[styles.cardUidText, { color: textSecondary }]}>
+                            Card UID: {cardUid}
+                        </Text>
+
+                        <TouchableOpacity
+                            style={styles.enrollButtonWrapper}
+                            onPress={() => navigation.navigate('Enroll', { cardUid })}
+                            activeOpacity={0.85}
+                        >
+                            <LinearGradient
+                                colors={['#FA0011', '#c5000d']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.enrollButton}
+                            >
+                                <PlusCircle size={24} color="#fff" strokeWidth={2} />
+                                <Text style={styles.enrollButtonText}>
+                                    {t('card.enrollNewCard')}
+                                </Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={() => navigation.goBack()}
+                            style={styles.backButton}
+                        >
+                            <Text style={[styles.backButtonText, { color: textSecondary }]}>
+                                {t('common.cancel')}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
             </LinearGradient>
         );
+    }
+
+    if (!card) {
+        return null;
     }
 
     const isActive = card.status === 'ACTIVE';
@@ -460,5 +508,59 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '800',
         letterSpacing: 1,
+    },
+    notFoundContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    notFoundContent: {
+        alignItems: 'center',
+        paddingHorizontal: 32,
+        maxWidth: 400,
+    },
+    notFoundTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    notFoundMessage: {
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 8,
+        lineHeight: 24,
+    },
+    cardUidText: {
+        fontSize: 14,
+        fontFamily: 'monospace',
+        marginBottom: 32,
+        opacity: 0.7,
+    },
+    enrollButtonWrapper: {
+        width: '100%',
+        marginBottom: 16,
+    },
+    enrollButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        paddingVertical: 18,
+        paddingHorizontal: 32,
+        borderRadius: 16,
+    },
+    enrollButtonText: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: '700',
+    },
+    backButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+    },
+    backButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

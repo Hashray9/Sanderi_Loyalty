@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { AppState } from 'react-native';
 import NfcManager, { NfcTech } from 'react-native-nfc-manager';
 
 interface UseNfcResult {
@@ -21,8 +22,17 @@ export function useNfc(): UseNfcResult {
 
     useEffect(() => {
         checkNfcSupport();
+
+        // Listen for app state changes to re-check NFC when coming back from settings
+        const subscription = AppState.addEventListener('change', (nextAppState) => {
+            if (nextAppState === 'active') {
+                checkNfcStatus();
+            }
+        });
+
         return () => {
             NfcManager.cancelTechnologyRequest().catch(() => { });
+            subscription.remove();
         };
     }, []);
 
@@ -41,6 +51,18 @@ export function useNfc(): UseNfcResult {
             setIsSupported(false);
         }
     };
+
+    const checkNfcStatus = useCallback(async () => {
+        try {
+            const supported = await NfcManager.isSupported();
+            if (supported) {
+                const enabled = await NfcManager.isEnabled();
+                setIsEnabled(enabled);
+            }
+        } catch (err) {
+            console.error('NFC status check failed:', err);
+        }
+    }, []);
 
     const startScan = useCallback(async () => {
         setError(null);

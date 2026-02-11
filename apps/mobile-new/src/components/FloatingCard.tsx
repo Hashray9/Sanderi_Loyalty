@@ -17,26 +17,34 @@ interface FloatingCardProps {
     isScanning: boolean;
 }
 
-function PulseRing({ delay }: { delay: number }) {
+function PulseRing({ delay, isScanning }: { delay: number; isScanning: boolean }) {
     const scale = useSharedValue(0.3);
-    const opacity = useSharedValue(0.6);
+    const opacity = useSharedValue(0);
 
     useEffect(() => {
-        scale.value = withDelay(
-            delay,
-            withRepeat(
-                withTiming(2.2, { duration: 2200, easing: Easing.out(Easing.cubic) }),
-                -1,
-            ),
-        );
-        opacity.value = withDelay(
-            delay,
-            withRepeat(
-                withTiming(0, { duration: 2200, easing: Easing.out(Easing.cubic) }),
-                -1,
-            ),
-        );
-    }, []);
+        if (isScanning) {
+            scale.value = withDelay(
+                delay,
+                withRepeat(
+                    withTiming(2.2, { duration: 2200, easing: Easing.out(Easing.cubic) }),
+                    -1,
+                ),
+            );
+            opacity.value = withDelay(
+                delay,
+                withRepeat(
+                    withSequence(
+                        withTiming(0.6, { duration: 100 }),
+                        withTiming(0, { duration: 2100, easing: Easing.out(Easing.cubic) }),
+                    ),
+                    -1,
+                ),
+            );
+        } else {
+            opacity.value = withTiming(0, { duration: 300 });
+            scale.value = 0.3;
+        }
+    }, [isScanning]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
@@ -49,29 +57,72 @@ function PulseRing({ delay }: { delay: number }) {
 export function FloatingCard({ isScanning }: FloatingCardProps) {
     const translateY = useSharedValue(0);
     const scale = useSharedValue(1);
+    const rotateZ = useSharedValue(0);
+    const rotateX = useSharedValue(5);
+
+    // Remove the idle floating animation - card stays steady when not scanning
 
     useEffect(() => {
-        translateY.value = withRepeat(
-            withSequence(
-                withTiming(-8, { duration: 2000 }),
-                withTiming(8, { duration: 2000 }),
-            ),
-            -1,
-            true,
-        );
-    }, []);
+        if (isScanning) {
+            // Rotate from horizontal to vertical, lift up, and add gentle floating
+            rotateZ.value = withTiming(90, {
+                duration: 800,
+                easing: Easing.inOut(Easing.cubic),
+            });
 
-    useEffect(() => {
-        scale.value = withSpring(isScanning ? 1.03 : 1);
+            // First lift up, then start floating
+            translateY.value = withSequence(
+                withTiming(-40, {
+                    duration: 800,
+                    easing: Easing.out(Easing.cubic),
+                }),
+                withRepeat(
+                    withSequence(
+                        withTiming(-48, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+                        withTiming(-32, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+                    ),
+                    -1,
+                    true,
+                ),
+            );
+
+            scale.value = withTiming(1.15, {
+                duration: 800,
+                easing: Easing.out(Easing.cubic),
+            });
+            rotateX.value = withTiming(0, {
+                duration: 800,
+                easing: Easing.inOut(Easing.cubic),
+            });
+        } else {
+            // Return to original position - steady, no floating
+            rotateZ.value = withTiming(0, {
+                duration: 800,
+                easing: Easing.inOut(Easing.cubic),
+            });
+            translateY.value = withTiming(0, {
+                duration: 800,
+                easing: Easing.inOut(Easing.cubic),
+            });
+            scale.value = withTiming(1, {
+                duration: 800,
+                easing: Easing.inOut(Easing.cubic),
+            });
+            rotateX.value = withTiming(5, {
+                duration: 800,
+                easing: Easing.inOut(Easing.cubic),
+            });
+        }
     }, [isScanning]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [
+            { perspective: 1200 },
             { translateY: translateY.value },
             { scale: scale.value },
-            { perspective: 800 },
-            { rotateX: '5deg' },
+            { rotateX: `${rotateX.value}deg` },
             { rotateY: '-3deg' },
+            { rotateZ: `${rotateZ.value}deg` },
         ],
     }));
 
@@ -119,9 +170,9 @@ export function FloatingCard({ isScanning }: FloatingCardProps) {
                     </View>
 
                     <View style={styles.nfcArea}>
-                        <PulseRing delay={0} />
-                        <PulseRing delay={733} />
-                        <PulseRing delay={1466} />
+                        <PulseRing delay={0} isScanning={isScanning} />
+                        <PulseRing delay={733} isScanning={isScanning} />
+                        <PulseRing delay={1466} isScanning={isScanning} />
                         <View style={styles.nfcSquare}>
                             <Nfc size={22} color="rgba(255,255,255,0.55)" strokeWidth={1.5} />
                         </View>

@@ -405,7 +405,8 @@ export default function EnrollScreen() {
                 message={successMessage}
                 onDismiss={() => {
                     setShowSuccess(false);
-                    navigation.goBack();
+                    // Navigate back to Scan screen
+                    navigation.navigate('Scan');
                 }}
             />
         </KeyboardAvoidingView>

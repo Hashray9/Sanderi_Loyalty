@@ -6,6 +6,7 @@
     "error": "Error",
     "ok": "OK",
     "cancel": "Cancel",
+    "openSettings": "Open Settings",
     "unknown": "Unknown"
   },
   "auth": {
@@ -33,9 +34,10 @@
     "offlineBanner": "Offline — actions will sync when connected"
   },
   "scan": {
-    "tapToScan": "Tap to Scan Card",
+    "clickStartToScan": "Click \"Start Scan\" to read a card",
     "scanning": "Scanning...",
     "holdNearCard": "Hold phone near the NFC card",
+    "holdCardNearPhone": "Hold the card near the phone",
     "tapButton": "Tap the button below to start scanning",
     "startScan": "Start Scan",
     "cancel": "Cancel",
@@ -59,7 +61,9 @@
     "viewCard": "View Card Details"
   },
   "card": {
-    "notFound": "Card not found",
+    "notFound": "Card Not Found",
+    "notFoundMessage": "This card has not been enrolled yet. Would you like to enroll it now?",
+    "enrollNewCard": "Enroll New Card",
     "fetchFailed": "Failed to load card details",
     "enroll": "Enroll Card",
     "creditPoints": "Credit Points",
