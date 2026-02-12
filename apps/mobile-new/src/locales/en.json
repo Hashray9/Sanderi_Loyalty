@@ -20,7 +20,18 @@
     "biometricPrompt": "Authenticate to login",
     "error": "Login Failed",
     "invalidCredentials": "Invalid mobile number or password",
-    "biometricFailed": "Biometric authentication failed"
+    "biometricFailed": "Biometric authentication failed",
+    "signup": "Sign Up",
+    "signupSubtitle": "Create your staff account",
+    "name": "Full Name",
+    "namePlaceholder": "Enter your full name",
+    "inviteCode": "Invite Code",
+    "inviteCodePlaceholder": "Enter invite code from admin",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Re-enter password",
+    "alreadyHaveAccount": "Already have an account? Login",
+    "noAccount": "Don't have an account? Sign Up",
+    "signupError": "Signup Failed"
   },
   "tabs": {
     "scan": "Scan",
@@ -77,7 +88,18 @@
     "done": "Done",
     "totalPoints": "Total Points",
     "pointsEarned": "Points Earned",
-    "rupeesEquivalent": "Rupees Equivalent"
+    "rupeesEquivalent": "Rupees Equivalent",
+    "selectCategory": "Select Category",
+    "enterAmount": "Enter Amount",
+    "enterPoints": "Enter Points",
+    "equivalentAmount": "≈ ₹{{amount}}",
+    "processTransaction": "Process Transaction",
+    "pointManager": "Point Manager",
+    "transaction": "Transaction",
+    "member": "Member",
+    "goBack": "Go Back",
+    "cardNotFoundDetails": "The card could not be found. Please try again.",
+    "cannotDebitMore": "Cannot debit more than {{points}} points"
   },
   "points": {
     "hardware": "Hardware",
@@ -184,11 +206,26 @@
     "version": "Version",
     "logout": "Logout",
     "logoutConfirmTitle": "Logout",
-    "logoutConfirmMessage": "Are you sure you want to logout?"
+    "logoutConfirmMessage": "Are you sure you want to logout?",
+    "inviteCode": "Invite Code",
+    "inviteCodeHint": "Share this code with new staff to sign up",
+    "inviteCodeUpdated": "Invite code updated successfully",
+    "inviteCodeFailed": "Failed to update invite code",
+    "inviteCodeLoadFailed": "Failed to load invite code",
+    "enterNewInviteCode": "Enter new invite code",
+    "save": "Save",
+    "changeInviteCode": "Change Invite Code"
   },
   "success": {
     "transactionComplete": "Transaction Complete",
     "pointsCredited": "Points credited successfully",
-    "pointsRedeemed": "Points redeemed successfully"
+    "pointsRedeemed": "Points redeemed successfully",
+    "transactionSuccessful": "Transaction Successful",
+    "transactionStatus": "Transaction Status",
+    "transactionDetails": "Transaction Details",
+    "creditedTo": "credited to",
+    "debitedFrom": "debited from",
+    "transactionId": "Transaction ID",
+    "newBalance": "New Balance"
   }
 }

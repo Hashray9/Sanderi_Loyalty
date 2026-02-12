@@ -30,6 +30,7 @@ interface AuthContextType {
     franchisee: Franchisee | null;
     hasBiometrics: boolean;
     login: (mobileNumber: string, password: string) => Promise<void>;
+    signup: (name: string, mobileNumber: string, password: string, inviteCode: string) => Promise<void>;
     loginWithBiometrics: () => Promise<void>;
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
@@ -143,6 +144,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setHasBiometrics(true);
     }, []);
 
+    const signup = useCallback(async (name: string, mobileNumber: string, password: string, inviteCode: string) => {
+        const response = await api.post('/auth/signup', { name, mobileNumber, password, inviteCode });
+        const { token, staff: s, store: st, franchisee: f } = response.data;
+
+        await setKeychainItem(TOKEN_KEY, token);
+        await setKeychainItem(
+            USER_DATA_KEY,
+            JSON.stringify({ staff: s, store: st, franchisee: f })
+        );
+        await setKeychainItem(
+            CREDENTIALS_KEY,
+            JSON.stringify({ mobileNumber, password })
+        );
+
+        setAuthToken(token);
+        setStaff(s);
+        setStore(st);
+        setFranchisee(f);
+        setIsAuthenticated(true);
+        setHasBiometrics(true);
+    }, []);
+
     const loginWithBiometrics = useCallback(async () => {
         const credentialsStr = await getKeychainItem(CREDENTIALS_KEY);
         if (!credentialsStr) {
@@ -202,6 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 franchisee,
                 hasBiometrics,
                 login,
+                signup,
                 loginWithBiometrics,
                 logout,
                 checkAuth,

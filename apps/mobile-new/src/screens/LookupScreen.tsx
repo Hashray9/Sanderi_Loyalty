@@ -14,11 +14,9 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
+import { ArrowLeft, Nfc, ArrowRight } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { api } from '@/lib/api';
-
-const DARK_GRADIENT = ['#050505', '#1c150e', '#18101e', '#0a0a0a'];
-const LIGHT_GRADIENT = ['#faf8f5', '#f5ede4', '#f0eaf2', '#f8f6f4'];
 
 interface CustomerResult {
     cardUid: string;
@@ -29,6 +27,22 @@ interface CustomerResult {
     plywoodPoints: number;
 }
 
+// Helper function to format phone number for display (masked)
+const formatPhoneNumber = (phone: string): string => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 10) {
+        return `+91 ${cleaned.slice(0, 3)} ••• ${cleaned.slice(-2)}`;
+    }
+    return phone;
+};
+
+// Helper function to format input as user types (10 digits with spaces - 5 5 format)
+const formatPhoneInput = (value: string): string => {
+    const cleaned = value.replace(/\D/g, '');
+    if (cleaned.length <= 5) return cleaned;
+    return `${cleaned.slice(0, 5)} ${cleaned.slice(5, 10)}`;
+};
+
 export default function LookupScreen() {
     const navigation = useNavigation<any>();
     const { t } = useTranslation();
@@ -38,11 +52,17 @@ export default function LookupScreen() {
     const [result, setResult] = useState<CustomerResult | null>(null);
     const [notFound, setNotFound] = useState(false);
 
-    const isDark = colorScheme === 'dark';
+    const handleMobileChange = (text: string) => {
+        const cleaned = text.replace(/\D/g, '');
+        if (cleaned.length <= 10) {
+            setMobile(formatPhoneInput(cleaned));
+        }
+    };
 
     const handleSearch = async () => {
-        if (mobile.length < 10) {
-            Alert.alert(t('common.error'), t('lookup.invalidMobile'));
+        const cleaned = mobile.replace(/\D/g, '');
+        if (cleaned.length !== 10) {
+            Alert.alert(t('common.error'), 'Please enter a valid 10-digit mobile number');
             return;
         }
 
@@ -52,7 +72,7 @@ export default function LookupScreen() {
 
         try {
             const response = await api.get('/customers/search', {
-                params: { mobile },
+                params: { mobile: cleaned },
             });
 
             if (response.data.found) {
@@ -73,326 +93,431 @@ export default function LookupScreen() {
         }
     };
 
-    const textPrimary = isDark ? '#f5f0eb' : '#1a1510';
-    const textSecondary = isDark ? '#8a7e72' : '#7a6e62';
-
-    const statusColor =
-        result?.cardStatus === 'ACTIVE' ? (isDark ? '#22c55e' : '#16a34a') : '#d97706';
+    const totalPoints = result ? result.hardwarePoints + result.plywoodPoints : 0;
+    const tierName = totalPoints >= 10000 ? 'PLATINUM TIER' : totalPoints >= 5000 ? 'GOLD TIER' : 'SILVER TIER';
+    const statusText = result?.cardStatus === 'ACTIVE' ? 'Active' : result?.cardStatus || '';
 
     return (
-        <LinearGradient
-            colors={isDark ? DARK_GRADIENT : LIGHT_GRADIENT}
-            locations={[0, 0.35, 0.65, 1]}
-            style={styles.flex}
-        >
+        <View style={styles.container}>
+            {/* Background gradients */}
+            <View style={styles.bgGradientTop} />
+            <View style={styles.bgGradientBottom} />
+
             <SafeAreaView style={styles.flex}>
                 <ScrollView
                     style={styles.flex}
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
                 >
-                    {/* Title */}
-                    <Text style={[styles.title, { color: textPrimary }]}>
-                        {t('lookup.enterMobile')}
-                    </Text>
-
-                    {/* Search Row */}
-                    <View style={[
-                        styles.searchRow,
-                        {
-                            backgroundColor: isDark
-                                ? 'rgba(255,255,255,0.06)'
-                                : 'rgba(0,0,0,0.04)',
-                            borderColor: isDark
-                                ? 'rgba(255,255,255,0.08)'
-                                : 'rgba(0,0,0,0.08)',
-                        },
-                    ]}>
-                        <TextInput
-                            style={[styles.input, { color: textPrimary }]}
-                            placeholder={t('lookup.mobilePlaceholder')}
-                            placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)'}
-                            keyboardType="phone-pad"
-                            value={mobile}
-                            onChangeText={setMobile}
-                            maxLength={15}
-                        />
-                        <View style={[
-                            styles.divider,
-                            {
-                                backgroundColor: isDark
-                                    ? 'rgba(255,255,255,0.10)'
-                                    : 'rgba(0,0,0,0.10)',
-                            },
-                        ]} />
+                    {/* Header */}
+                    <View style={styles.header}>
                         <TouchableOpacity
+                            style={styles.backButton}
+                            onPress={() => navigation.goBack()}
+                            activeOpacity={0.7}
+                        >
+                            <ArrowLeft size={24} color="#fff" strokeWidth={1.5} />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>Search Member</Text>
+                        <View style={styles.headerSpacer} />
+                    </View>
+
+                    {/* Search Input */}
+                    <View style={styles.searchSection}>
+                        <Text style={styles.inputLabel}>Mobile Number</Text>
+                        <View style={styles.inputWrapper}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="00000 00000"
+                                placeholderTextColor="rgba(255,255,255,0.1)"
+                                keyboardType="phone-pad"
+                                value={mobile}
+                                onChangeText={handleMobileChange}
+                                maxLength={11}
+                            />
+                        </View>
+                        <TouchableOpacity
+                            style={styles.searchButton}
                             onPress={handleSearch}
                             disabled={isLoading}
-                            activeOpacity={0.85}
+                            activeOpacity={0.8}
                         >
-                            <LinearGradient
-                                colors={['#FA0011', '#c5000d']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.searchButton}
-                            >
-                                {isLoading ? (
-                                    <ActivityIndicator color="#fff" size="small" />
-                                ) : (
-                                    <Text style={styles.searchButtonText}>
-                                        {t('lookup.search')}
-                                    </Text>
-                                )}
-                            </LinearGradient>
+                            {isLoading ? (
+                                <ActivityIndicator color="rgba(255,255,255,0.9)" size="small" />
+                            ) : (
+                                <Text style={styles.searchButtonText}>Search Member</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
 
-                    {/* Not Found */}
-                    {notFound && (
-                        <Animated.View
-                            entering={FadeInDown.springify().damping(20).stiffness(200)}
-                            exiting={FadeOutDown}
-                            style={[
-                                styles.resultCard,
-                                {
-                                    backgroundColor: isDark
-                                        ? 'rgba(255,255,255,0.05)'
-                                        : 'rgba(0,0,0,0.03)',
-                                    borderColor: isDark
-                                        ? 'rgba(255,255,255,0.08)'
-                                        : 'rgba(0,0,0,0.06)',
-                                },
-                            ]}
-                        >
-                            <Text style={[styles.notFoundText, { color: textPrimary }]}>
-                                {t('lookup.notFound')}
-                            </Text>
-                            <Text style={[styles.notFoundHint, { color: textSecondary }]}>
-                                {t('lookup.notFoundHint')}
-                            </Text>
-                        </Animated.View>
-                    )}
-
-                    {/* Result Card */}
-                    {result && (
-                        <Animated.View
-                            entering={FadeInDown.springify().damping(20).stiffness(200)}
-                            exiting={FadeOutDown}
-                            style={[
-                                styles.resultCard,
-                                {
-                                    backgroundColor: isDark
-                                        ? 'rgba(255,255,255,0.05)'
-                                        : 'rgba(0,0,0,0.03)',
-                                    borderColor: isDark
-                                        ? 'rgba(255,255,255,0.08)'
-                                        : 'rgba(0,0,0,0.06)',
-                                },
-                            ]}
-                        >
-                            {/* Name + Status */}
-                            <View style={styles.resultHeader}>
-                                <Text style={[styles.customerName, { color: textPrimary }]}>
-                                    {result.name}
-                                </Text>
-                                <View style={[
-                                    styles.statusBadge,
-                                    { borderColor: statusColor },
-                                ]}>
-                                    <Text style={[styles.statusText, { color: statusColor }]}>
-                                        {result.cardStatus}
-                                    </Text>
-                                </View>
-                            </View>
-
-                            {/* Mobile */}
-                            <Text style={[styles.mobile, { color: textSecondary }]}>
-                                {result.mobileNumber}
-                            </Text>
-
-                            {/* Points */}
-                            <View style={styles.pointsRow}>
-                                <View style={[
-                                    styles.pointBox,
-                                    {
-                                        backgroundColor: isDark
-                                            ? 'rgba(255,255,255,0.06)'
-                                            : 'rgba(0,0,0,0.04)',
-                                        borderColor: isDark
-                                            ? 'rgba(255,255,255,0.08)'
-                                            : 'rgba(0,0,0,0.06)',
-                                    },
-                                ]}>
-                                    <Text style={[styles.pointLabel, { color: textSecondary }]}>
-                                        {t('points.hardware').toUpperCase()}
-                                    </Text>
-                                    <Text style={[styles.pointValue, { color: textPrimary }]}>
-                                        {result.hardwarePoints}
-                                    </Text>
-                                </View>
-                                <View style={[
-                                    styles.pointBox,
-                                    {
-                                        backgroundColor: isDark
-                                            ? 'rgba(255,255,255,0.06)'
-                                            : 'rgba(0,0,0,0.04)',
-                                        borderColor: isDark
-                                            ? 'rgba(255,255,255,0.08)'
-                                            : 'rgba(0,0,0,0.06)',
-                                    },
-                                ]}>
-                                    <Text style={[styles.pointLabel, { color: textSecondary }]}>
-                                        {t('points.plywood').toUpperCase()}
-                                    </Text>
-                                    <Text style={[styles.pointValue, { color: textPrimary }]}>
-                                        {result.plywoodPoints}
-                                    </Text>
-                                </View>
-                            </View>
-
-                            {/* View Card Button */}
-                            <TouchableOpacity
-                                onPress={handleViewCard}
-                                activeOpacity={0.85}
+                    {/* Result Card Area */}
+                    <View style={styles.cardArea}>
+                        {result && (
+                            <Animated.View
+                                entering={FadeInDown.springify().damping(20).stiffness(200)}
+                                exiting={FadeOutDown}
+                                style={styles.memberCard}
                             >
                                 <LinearGradient
-                                    colors={['#FA0011', '#c5000d']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={styles.viewButton}
+                                    colors={['#1A1A1A', '#050505']}
+                                    style={styles.cardGradient}
                                 >
-                                    <Text style={styles.viewButtonText}>
-                                        {t('lookup.viewCard')}
-                                    </Text>
+                                    {/* Card shine overlay */}
+                                    <LinearGradient
+                                        colors={['transparent', 'rgba(255,255,255,0.02)', 'transparent']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.cardShine}
+                                    />
+
+                                    {/* Card Header */}
+                                    <View style={styles.cardHeader}>
+                                        <View>
+                                            <Text style={styles.statusLabel}>Status</Text>
+                                            <Text style={styles.statusValue}>{statusText}</Text>
+                                        </View>
+                                        <View style={styles.nfcIconContainer}>
+                                            <Nfc size={12} color="#9ca3af" strokeWidth={1.5} />
+                                        </View>
+                                    </View>
+
+                                    {/* Card Body */}
+                                    <View style={styles.cardBody}>
+                                        <Text style={styles.memberName}>{result.name}</Text>
+                                        <Text style={styles.memberPhone}>
+                                            {formatPhoneNumber(result.mobileNumber)}
+                                        </Text>
+                                    </View>
+
+                                    {/* Card Footer - Points by Category */}
+                                    <View style={styles.cardFooter}>
+                                        <View style={styles.categoryPoints}>
+                                            <Text style={styles.footerLabel}>Hardware</Text>
+                                            <Text style={styles.categoryPointsValue}>
+                                                {result.hardwarePoints.toLocaleString()}{' '}
+                                                <Text style={styles.pointsUnit}>pts</Text>
+                                            </Text>
+                                        </View>
+                                        <View style={styles.categoryPoints}>
+                                            <Text style={styles.footerLabel}>Plywood</Text>
+                                            <Text style={styles.categoryPointsValue}>
+                                                {result.plywoodPoints.toLocaleString()}{' '}
+                                                <Text style={styles.pointsUnit}>pts</Text>
+                                            </Text>
+                                        </View>
+                                    </View>
                                 </LinearGradient>
+                            </Animated.View>
+                        )}
+
+                        {notFound && (
+                            <Animated.View
+                                entering={FadeInDown.springify().damping(20).stiffness(200)}
+                                exiting={FadeOutDown}
+                                style={styles.emptyState}
+                            >
+                                <Text style={styles.emptyText}>No member found</Text>
+                                <Text style={styles.emptyHint}>Please check the mobile number</Text>
+                            </Animated.View>
+                        )}
+                    </View>
+
+                    {/* Make Transaction Button */}
+                    {result && (
+                        <Animated.View
+                            entering={FadeInDown.springify().damping(20).stiffness(200).delay(100)}
+                            exiting={FadeOutDown}
+                            style={styles.bottomAction}
+                        >
+                            <TouchableOpacity
+                                style={styles.transactionButton}
+                                onPress={handleViewCard}
+                                activeOpacity={0.9}
+                            >
+                                <Text style={styles.transactionButtonText}>Make Transactions</Text>
+                                <View style={styles.transactionButtonArrow}>
+                                    <View style={styles.arrowLine} />
+                                    <ArrowRight size={18} color="#000" strokeWidth={2.5} />
+                                </View>
                             </TouchableOpacity>
                         </Animated.View>
                     )}
                 </ScrollView>
             </SafeAreaView>
-        </LinearGradient>
+
+            {/* Bottom gradient fade */}
+            <View style={styles.bottomGradientFade} />
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#000',
+    },
     flex: {
         flex: 1,
     },
-    scrollContent: {
-        paddingHorizontal: 24,
-        paddingTop: 48,
-        paddingBottom: 32,
+    bgGradientTop: {
+        position: 'absolute',
+        top: '-5%',
+        left: '-20%',
+        width: '80%',
+        height: '50%',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderRadius: 999,
+        transform: [{ scale: 1.5 }],
+        opacity: 0.3,
     },
-    title: {
-        fontSize: 26,
-        fontWeight: '800',
+    bgGradientBottom: {
+        position: 'absolute',
+        bottom: '-10%',
+        right: '-20%',
+        width: '80%',
+        height: '50%',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderRadius: 999,
+        transform: [{ scale: 1.5 }],
+        opacity: 0.3,
+    },
+    scrollContent: {
+        paddingHorizontal: 28,
+        paddingTop: 0,
+        paddingBottom: 100,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 16,
+        marginBottom: 40,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: -8,
+    },
+    headerTitle: {
+        fontSize: 11,
+        fontWeight: '500',
+        color: 'rgba(255,255,255,0.9)',
+        letterSpacing: 4.8,
+        textAlign: 'center',
+        textTransform: 'uppercase',
+    },
+    headerSpacer: {
+        width: 40,
+    },
+    searchSection: {
         marginBottom: 32,
     },
-    searchRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 16,
-        borderWidth: 1,
-        paddingLeft: 16,
-        paddingRight: 6,
-        paddingVertical: 6,
-        marginBottom: 28,
+    inputLabel: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#6b7280',
+        letterSpacing: 3.2,
+        textTransform: 'uppercase',
+        marginBottom: 16,
+        marginLeft: 4,
+    },
+    inputWrapper: {
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.2)',
+        marginBottom: 32,
     },
     input: {
-        flex: 1,
-        fontSize: 17,
-        fontWeight: '500',
-        paddingVertical: 10,
-    },
-    divider: {
-        width: 1,
-        height: 28,
-        marginHorizontal: 12,
+        fontSize: 24,
+        fontFamily: 'serif',
+        letterSpacing: 8,
+        color: '#fff',
+        paddingVertical: 16,
+        paddingHorizontal: 0,
     },
     searchButton: {
-        paddingHorizontal: 24,
-        paddingVertical: 14,
-        borderRadius: 12,
-        justifyContent: 'center',
+        position: 'relative',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        paddingVertical: 20,
         alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
     },
     searchButtonText: {
-        color: '#fff',
-        fontSize: 16,
+        fontSize: 11,
         fontWeight: '700',
+        color: 'rgba(255,255,255,0.9)',
+        letterSpacing: 4,
+        textTransform: 'uppercase',
     },
-    resultCard: {
-        borderRadius: 20,
+    cardArea: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 280,
+    },
+    memberCard: {
+        width: '100%',
+        maxWidth: 340,
+        aspectRatio: 1.6,
+        borderRadius: 24,
+        overflow: 'hidden',
+        shadowColor: '#fff',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.1,
+        shadowRadius: 60,
+        elevation: 18,
+    },
+    cardGradient: {
+        flex: 1,
         borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 24,
         padding: 24,
+        justifyContent: 'space-between',
     },
-    notFoundText: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 8,
-        textAlign: 'center',
+    cardShine: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        opacity: 0.4,
     },
-    notFoundHint: {
-        fontSize: 14,
-        textAlign: 'center',
-    },
-    resultHeader: {
+    cardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+    },
+    statusLabel: {
+        fontSize: 8,
+        letterSpacing: 3.2,
+        color: '#6b7280',
+        fontWeight: '500',
+        textTransform: 'uppercase',
         marginBottom: 4,
     },
-    customerName: {
-        fontSize: 24,
-        fontWeight: '800',
-    },
-    statusBadge: {
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-        borderRadius: 20,
-        borderWidth: 1.5,
-    },
-    statusText: {
+    statusValue: {
         fontSize: 12,
-        fontWeight: '700',
-        letterSpacing: 0.5,
+        letterSpacing: 4.8,
+        color: '#10b981',
+        fontWeight: '600',
     },
-    mobile: {
-        fontSize: 15,
-        marginBottom: 24,
-        marginTop: 2,
-    },
-    pointsRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 24,
-    },
-    pointBox: {
-        flex: 1,
+    nfcIconContainer: {
+        width: 32,
+        height: 32,
         borderRadius: 16,
         borderWidth: 1,
-        paddingVertical: 20,
-        paddingHorizontal: 16,
+        borderColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    pointLabel: {
-        fontSize: 12,
-        fontWeight: '700',
-        letterSpacing: 1,
+    cardBody: {
+        zIndex: 10,
+    },
+    memberName: {
+        fontSize: 18,
+        fontFamily: 'serif',
+        color: '#fff',
+        marginBottom: 2,
+    },
+    memberPhone: {
+        fontSize: 10,
+        fontFamily: 'monospace',
+        color: '#6b7280',
+        letterSpacing: 2.4,
+    },
+    cardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.05)',
+        zIndex: 10,
+        gap: 16,
+    },
+    categoryPoints: {
+        flex: 1,
+    },
+    footerLabel: {
+        fontSize: 8,
+        letterSpacing: 3.2,
+        color: '#6b7280',
+        fontWeight: '500',
+        textTransform: 'uppercase',
+        marginBottom: 2,
+    },
+    categoryPointsValue: {
+        fontSize: 16,
+        fontFamily: 'serif',
+        color: '#fff',
+    },
+    pointsUnit: {
+        fontSize: 9,
+        color: '#6b7280',
+        fontStyle: 'italic',
+        fontFamily: 'sans-serif',
+        textTransform: 'uppercase',
+        marginLeft: 2,
+    },
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 40,
+    },
+    emptyText: {
+        fontSize: 16,
+        fontStyle: 'italic',
+        color: '#fff',
+        fontFamily: 'serif',
         marginBottom: 8,
     },
-    pointValue: {
-        fontSize: 36,
-        fontWeight: '800',
+    emptyHint: {
+        fontSize: 11,
+        letterSpacing: 2,
+        color: '#6b7280',
+        fontWeight: '500',
     },
-    viewButton: {
-        height: 54,
-        borderRadius: 16,
-        justifyContent: 'center',
+    bottomAction: {
+        marginTop: 32,
+    },
+    transactionButton: {
+        backgroundColor: '#fff',
+        height: 56,
+        borderRadius: 0,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 28,
     },
-    viewButtonText: {
-        color: '#fff',
-        fontSize: 17,
+    transactionButtonText: {
+        fontSize: 11,
         fontWeight: '700',
+        color: '#000',
+        letterSpacing: 4,
+        textTransform: 'uppercase',
+    },
+    transactionButtonArrow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    arrowLine: {
+        width: 32,
+        height: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    bottomGradientFade: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 160,
+        backgroundColor: 'transparent',
     },
 });

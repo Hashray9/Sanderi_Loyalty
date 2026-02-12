@@ -21,6 +21,7 @@ async function main() {
       name: 'Sanderi Main Store',
       hardwareConversionRate: 100, // ₹100 = 1 point
       plywoodConversionRate: 100,
+      inviteCode: 'sanderi2026',
     },
   });
   console.log('Created store:', store.name);

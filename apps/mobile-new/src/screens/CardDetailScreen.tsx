@@ -7,26 +7,21 @@ import {
     ScrollView,
     ActivityIndicator,
     Alert,
+    TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
-import { X, PlusCircle, MinusCircle } from 'lucide-react-native';
+import { ArrowLeft, User, Wrench, Layers, PlusCircle, MinusCircle, Zap, Clock } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { api } from '@/lib/api';
 import { v4 as uuidv4 } from 'uuid';
-import { CategoryCard } from '@/components/CategoryCard';
-import { AmountInput } from '@/components/AmountInput';
-import { CardBottomBar } from '@/components/CardBottomBar';
 import { SuccessOverlay } from '@/components/SuccessOverlay';
-import { BlockConfirmDialog } from '@/components/BlockConfirmDialog';
-
-const DARK_GRADIENT = ['#050505', '#1c150e', '#18101e', '#0a0a0a'];
-const LIGHT_GRADIENT = ['#faf8f5', '#f5ede4', '#f0eaf2', '#f8f6f4'];
+import { Toast } from '@/components/Toast';
 
 interface CardData {
     cardUid: string;
@@ -43,8 +38,17 @@ interface CardData {
     };
 }
 
+interface TransactionDetail {
+    type: 'CREDIT' | 'DEBIT';
+    category: 'HARDWARE' | 'PLYWOOD';
+    points: number;
+    memberName: string;
+    transactionId: string;
+    newBalance: number;
+}
+
 type Category = 'HARDWARE' | 'PLYWOOD';
-type Mode = 'idle' | 'credit' | 'debit';
+type TransactionType = 'CREDIT' | 'DEBIT' | null;
 
 export default function CardDetailScreen() {
     const route = useRoute<any>();
@@ -55,20 +59,17 @@ export default function CardDetailScreen() {
     const { store } = useAuth();
     const { addAction } = useOfflineQueue();
 
-    const isDark = colorScheme === 'dark';
-
     const [card, setCard] = useState<CardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [cardNotFound, setCardNotFound] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-    const [mode, setMode] = useState<Mode>('idle');
+    const [transactionType, setTransactionType] = useState<TransactionType>(null);
+    const [amount, setAmount] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
-    const [showBlockDialog, setShowBlockDialog] = useState(false);
-    const [isBlocking, setIsBlocking] = useState(false);
-
-    const textPrimary = isDark ? '#f5f0eb' : '#1a1510';
-    const textSecondary = isDark ? '#8a7e72' : '#7a6e62';
+    const [transactionDetail, setTransactionDetail] = useState<TransactionDetail | undefined>(undefined);
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
 
     const fetchCard = useCallback(async () => {
         try {
@@ -97,6 +98,13 @@ export default function CardDetailScreen() {
         }
     }, [card, cardUid, navigation]);
 
+    // If card not found, navigate to Enroll screen
+    useEffect(() => {
+        if (cardNotFound || (!isLoading && !card)) {
+            navigation.replace('Enroll', { cardUid });
+        }
+    }, [cardNotFound, card, isLoading, cardUid, navigation]);
+
     const conversionRate = useCallback(
         (cat: Category) => {
             if (cat === 'HARDWARE') return store?.hardwareConversionRate || 100;
@@ -105,43 +113,85 @@ export default function CardDetailScreen() {
         [store]
     );
 
-    const handleCreditDone = useCallback(
-        async (amount: number) => {
-            if (!selectedCategory) return;
+    const formatIndian = (num: string) => {
+        const digits = num.replace(/\D/g, '');
+        if (!digits) return '';
+        const len = digits.length;
+        if (len <= 3) return digits;
+        let result = digits.slice(len - 3);
+        let remaining = digits.slice(0, len - 3);
+        while (remaining.length > 2) {
+            result = remaining.slice(remaining.length - 2) + ',' + result;
+            remaining = remaining.slice(0, remaining.length - 2);
+        }
+        if (remaining.length > 0) result = remaining + ',' + result;
+        return result;
+    };
 
-            const rate = conversionRate(selectedCategory);
-            const points = Math.floor(amount / rate);
+    const handleAmountChange = (text: string) => {
+        const raw = text.replace(/,/g, '');
+        if (raw === '' || /^\d+$/.test(raw)) {
+            setAmount(raw);
+        }
+    };
 
-            try {
+    const handleCategorySelect = (category: Category) => {
+        setSelectedCategory(category);
+        setTransactionType(null);
+        setAmount('');
+    };
+
+    const handleTransactionTypeSelect = (type: TransactionType) => {
+        setTransactionType(type);
+        setAmount('');
+    };
+
+    const handleProcessTransaction = useCallback(async () => {
+        if (!selectedCategory || !transactionType || !amount) {
+            Alert.alert(t('common.error'), 'Please fill all fields');
+            return;
+        }
+
+        const numericAmount = parseFloat(amount);
+        if (isNaN(numericAmount) || numericAmount <= 0) {
+            Alert.alert(t('common.error'), 'Please enter a valid amount');
+            return;
+        }
+
+        setIsProcessing(true);
+
+        try {
+            const entryId = uuidv4();
+            let points: number;
+
+            if (transactionType === 'CREDIT') {
+                const rate = conversionRate(selectedCategory);
+                points = Math.floor(numericAmount / rate);
+
                 await addAction({
-                    entryId: uuidv4(),
+                    entryId,
                     actionType: 'CREDIT',
                     payload: {
                         cardUid: cardUid!,
                         category: selectedCategory,
-                        amount,
+                        amount: numericAmount,
                     },
                 });
+            } else {
+                // DEBIT - amount is in points
+                points = Math.floor(numericAmount);
 
-                setMode('idle');
-                setSelectedCategory(null);
-                setSuccessMessage(t('credit.successMessage', { points }));
-                setShowSuccess(true);
-                setTimeout(fetchCard, 1600);
-            } catch {
-                Alert.alert(t('common.error'), t('credit.failed'));
-            }
-        },
-        [selectedCategory, conversionRate, addAction, cardUid, t, fetchCard]
-    );
+                // Check if balance is sufficient
+                const currentBalance = selectedCategory === 'HARDWARE' ? card!.hardwarePoints : card!.plywoodPoints;
+                if (points > currentBalance) {
+                    setToastMessage(t('card.cannotDebitMore', { points: currentBalance.toLocaleString() }));
+                    setToastVisible(true);
+                    setIsProcessing(false);
+                    return;
+                }
 
-    const handleDebitDone = useCallback(
-        async (points: number) => {
-            if (!selectedCategory) return;
-
-            try {
                 await addAction({
-                    entryId: uuidv4(),
+                    entryId,
                     actionType: 'DEBIT',
                     payload: {
                         cardUid: cardUid!,
@@ -149,418 +199,661 @@ export default function CardDetailScreen() {
                         points,
                     },
                 });
-
-                setMode('idle');
-                setSelectedCategory(null);
-                setSuccessMessage(t('debit.successMessage', { points }));
-                setShowSuccess(true);
-                setTimeout(fetchCard, 1600);
-            } catch {
-                Alert.alert(t('common.error'), t('debit.failed'));
             }
-        },
-        [selectedCategory, addAction, cardUid, t, fetchCard]
-    );
 
-    const handleBlock = useCallback(async () => {
-        setIsBlocking(true);
-        try {
-            await addAction({
-                entryId: uuidv4(),
-                actionType: 'BLOCK',
-                payload: {
-                    cardUid: cardUid!,
-                    reason: 'OTHER',
-                },
+            // Calculate new balance
+            const currentBalance = selectedCategory === 'HARDWARE' ? card!.hardwarePoints : card!.plywoodPoints;
+            const newBalance = transactionType === 'CREDIT' ? currentBalance + points : currentBalance - points;
+
+            // Set transaction detail for success overlay
+            setTransactionDetail({
+                type: transactionType,
+                category: selectedCategory,
+                points,
+                memberName: card!.holder!.name,
+                transactionId: entryId.slice(-6).toUpperCase(),
+                newBalance,
             });
 
-            setShowBlockDialog(false);
-            setSuccessMessage(t('block.successMessage'));
             setShowSuccess(true);
-            setTimeout(() => navigation.goBack(), 1600);
+            setAmount('');
+            setTransactionType(null);
+            setSelectedCategory(null);
         } catch {
-            Alert.alert(t('common.error'), t('block.failed'));
+            Alert.alert(t('common.error'), 'Transaction failed');
         } finally {
-            setIsBlocking(false);
+            setIsProcessing(false);
         }
-    }, [addAction, cardUid, t, navigation]);
+    }, [selectedCategory, transactionType, amount, conversionRate, addAction, cardUid, t, fetchCard]);
 
     if (isLoading) {
         return (
-            <LinearGradient
-                colors={isDark ? DARK_GRADIENT : LIGHT_GRADIENT}
-                locations={[0, 0.35, 0.65, 1]}
-                style={styles.loadingContainer}
-            >
-                <ActivityIndicator size="large" color="#FA0011" />
-            </LinearGradient>
+            <View style={styles.container}>
+                <View style={styles.bgGradientTop} />
+                <View style={styles.bgGradientBottom} />
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="rgba(255,255,255,0.9)" />
+                </View>
+            </View>
         );
     }
 
-    if (cardNotFound) {
-        return (
-            <LinearGradient
-                colors={isDark ? DARK_GRADIENT : LIGHT_GRADIENT}
-                locations={[0, 0.35, 0.65, 1]}
-                style={styles.container}
-            >
-                <SafeAreaView style={styles.notFoundContainer}>
-                    <View style={styles.notFoundContent}>
-                        <Text style={[styles.notFoundTitle, { color: textPrimary }]}>
-                            {t('card.notFound')}
-                        </Text>
-                        <Text style={[styles.notFoundMessage, { color: textSecondary }]}>
-                            {t('card.notFoundMessage')}
-                        </Text>
-                        <Text style={[styles.cardUidText, { color: textSecondary }]}>
-                            Card UID: {cardUid}
-                        </Text>
-
-                        <TouchableOpacity
-                            style={styles.enrollButtonWrapper}
-                            onPress={() => navigation.navigate('Enroll', { cardUid })}
-                            activeOpacity={0.85}
-                        >
-                            <LinearGradient
-                                colors={['#FA0011', '#c5000d']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.enrollButton}
-                            >
-                                <PlusCircle size={24} color="#fff" strokeWidth={2} />
-                                <Text style={styles.enrollButtonText}>
-                                    {t('card.enrollNewCard')}
-                                </Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={() => navigation.goBack()}
-                            style={styles.backButton}
-                        >
-                            <Text style={[styles.backButtonText, { color: textSecondary }]}>
-                                {t('common.cancel')}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </SafeAreaView>
-            </LinearGradient>
-        );
-    }
-
+    // Return null while navigating to prevent rendering errors
     if (!card) {
         return null;
     }
 
     const isActive = card.status === 'ACTIVE';
     const isBlocked = card.status === 'BLOCKED';
-    const currentBalance =
-        selectedCategory === 'HARDWARE'
-            ? card.hardwarePoints
-            : selectedCategory === 'PLYWOOD'
-                ? card.plywoodPoints
-                : 0;
+    const tierName = card.holder ? 'PLATINUM' : 'UNASSIGNED';
 
     return (
-        <LinearGradient
-            colors={isDark ? DARK_GRADIENT : LIGHT_GRADIENT}
-            locations={[0, 0.35, 0.65, 1]}
-            style={styles.container}
-        >
-            <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
+            {/* Background gradients */}
+            <View style={styles.bgGradientTop} />
+            <View style={styles.bgGradientBottom} />
+
+            <SafeAreaView style={styles.flex}>
                 <ScrollView
+                    style={styles.flex}
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
                 >
-                    {/* Top bar */}
-                    <View style={styles.topBar}>
+                    {/* Header */}
+                    <View style={styles.header}>
                         <TouchableOpacity
+                            style={styles.backButton}
                             onPress={() => navigation.goBack()}
-                            style={styles.closeButton}
                             activeOpacity={0.7}
                         >
-                            <X size={24} color={textSecondary} strokeWidth={2} />
+                            <ArrowLeft size={24} color="#fff" strokeWidth={1.5} />
                         </TouchableOpacity>
-                        {card.holder && (
-                            <View style={styles.holderInfo}>
-                                <Text style={[styles.holderName, { color: textPrimary }]}>
-                                    {card.holder.name}
-                                </Text>
-                                <Text style={[styles.holderMobile, { color: textSecondary }]}>
-                                    {card.holder.mobileNumber}
-                                </Text>
-                            </View>
-                        )}
+                        <View style={styles.headerTitleContainer}>
+                            <Text style={styles.headerSubtitle}>{t('card.transaction').toUpperCase()}</Text>
+                            <Text style={styles.headerTitle}>{t('card.pointManager')}</Text>
+                        </View>
+                        <View style={styles.headerSpacer} />
                     </View>
 
-                    {/* Blocked notice */}
-                    {isBlocked && (
-                        <View style={[
-                            styles.blockedNotice,
-                            {
-                                backgroundColor: isDark
-                                    ? 'rgba(239,68,68,0.10)'
-                                    : 'rgba(239,68,68,0.08)',
-                                borderColor: isDark
-                                    ? 'rgba(239,68,68,0.20)'
-                                    : 'rgba(239,68,68,0.15)',
-                            },
-                        ]}>
-                            <Text style={styles.blockedText}>
-                                {t('card.blockedMessage')}
-                            </Text>
+                    {/* Member Info Card */}
+                    {card.holder && (
+                        <View style={styles.memberCard}>
+                            <LinearGradient
+                                colors={['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.01)']}
+                                style={styles.memberCardGradient}
+                            >
+                                <View style={styles.memberCardContent}>
+                                    <View style={styles.avatarContainer}>
+                                        <User size={16} color="rgba(255,255,255,0.6)" strokeWidth={1.5} />
+                                    </View>
+                                    <View style={styles.memberInfo}>
+                                        <Text style={styles.memberLabel}>{t('card.member').toUpperCase()}</Text>
+                                        <Text style={styles.memberName}>{card.holder.name}</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.historyButton}
+                                        onPress={() => navigation.navigate('History', { cardUid, holderName: card.holder?.name || 'Card Holder' })}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Clock size={18} color="rgba(255,255,255,0.6)" strokeWidth={1.5} />
+                                    </TouchableOpacity>
+                                </View>
+                            </LinearGradient>
                         </View>
                     )}
 
-                    {/* Category cards */}
+                    {/* Category Selection */}
                     {isActive && (
-                        <View style={styles.categoryRow}>
-                            <CategoryCard
-                                category="HARDWARE"
-                                points={card.hardwarePoints}
-                                isSelected={selectedCategory === 'HARDWARE'}
-                                onPress={() => {
-                                    setSelectedCategory(
-                                        selectedCategory === 'HARDWARE' ? null : 'HARDWARE'
-                                    );
-                                    setMode('idle');
-                                }}
-                            />
-                            <CategoryCard
-                                category="PLYWOOD"
-                                points={card.plywoodPoints}
-                                isSelected={selectedCategory === 'PLYWOOD'}
-                                onPress={() => {
-                                    setSelectedCategory(
-                                        selectedCategory === 'PLYWOOD' ? null : 'PLYWOOD'
-                                    );
-                                    setMode('idle');
-                                }}
-                            />
-                        </View>
+                        <>
+                            <Text style={styles.sectionLabel}>{t('card.selectCategory')}</Text>
+                            <View style={styles.categoryGrid}>
+                                {/* Hardware Card */}
+                                <TouchableOpacity
+                                    style={styles.categoryCard}
+                                    onPress={() => handleCategorySelect('HARDWARE')}
+                                    activeOpacity={0.8}
+                                >
+                                    <LinearGradient
+                                        colors={
+                                            selectedCategory === 'HARDWARE'
+                                                ? ['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.04)']
+                                                : ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.01)']
+                                        }
+                                        style={[
+                                            styles.categoryCardGradient,
+                                            selectedCategory === 'HARDWARE' && styles.categoryCardGradientActive,
+                                        ]}
+                                    >
+                                        <View style={styles.categoryCardHeader}>
+                                            <Wrench size={20} color={selectedCategory === 'HARDWARE' ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.4)'} strokeWidth={1.5} />
+                                            {selectedCategory === 'HARDWARE' && (
+                                                <View style={styles.activeIndicator} />
+                                            )}
+                                        </View>
+                                        <View style={styles.categoryCardFooter}>
+                                            <Text style={[styles.categoryName, selectedCategory === 'HARDWARE' && styles.categoryNameActive]}>{t('points.hardware')}</Text>
+                                            <View style={styles.pointsRow}>
+                                                <Text style={[styles.pointsValue, selectedCategory === 'HARDWARE' && styles.pointsValueActive]}>
+                                                    {card.hardwarePoints.toLocaleString()}
+                                                </Text>
+                                                <Text style={styles.pointsUnit}>PTS</Text>
+                                            </View>
+                                        </View>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+
+                                {/* Plywood Card */}
+                                <TouchableOpacity
+                                    style={styles.categoryCard}
+                                    onPress={() => handleCategorySelect('PLYWOOD')}
+                                    activeOpacity={0.8}
+                                >
+                                    <LinearGradient
+                                        colors={
+                                            selectedCategory === 'PLYWOOD'
+                                                ? ['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.04)']
+                                                : ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.01)']
+                                        }
+                                        style={[
+                                            styles.categoryCardGradient,
+                                            selectedCategory === 'PLYWOOD' && styles.categoryCardGradientActive,
+                                        ]}
+                                    >
+                                        <View style={styles.categoryCardHeader}>
+                                            <Layers size={20} color={selectedCategory === 'PLYWOOD' ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.4)'} strokeWidth={1.5} />
+                                            {selectedCategory === 'PLYWOOD' && (
+                                                <View style={styles.activeIndicator} />
+                                            )}
+                                        </View>
+                                        <View style={styles.categoryCardFooter}>
+                                            <Text style={[styles.categoryName, selectedCategory === 'PLYWOOD' && styles.categoryNameActive]}>{t('points.plywood')}</Text>
+                                            <View style={styles.pointsRow}>
+                                                <Text style={[styles.pointsValue, selectedCategory === 'PLYWOOD' && styles.pointsValueActive]}>
+                                                    {card.plywoodPoints.toLocaleString()}
+                                                </Text>
+                                                <Text style={styles.pointsUnit}>PTS</Text>
+                                            </View>
+                                        </View>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+                        </>
                     )}
 
-                    {/* Credit / Debit action buttons */}
-                    {isActive && selectedCategory && mode === 'idle' && (
+                    {/* Credit/Debit Buttons */}
+                    {selectedCategory && (
                         <Animated.View
                             entering={FadeInDown.springify().damping(20).stiffness(200)}
                             exiting={FadeOutDown}
-                            style={styles.actionRow}
+                            style={styles.actionButtonsContainer}
                         >
                             <TouchableOpacity
-                                style={styles.actionTouchable}
-                                onPress={() => setMode('credit')}
-                                activeOpacity={0.85}
+                                style={[
+                                    styles.actionButton,
+                                    transactionType === 'CREDIT' && styles.actionButtonCreditActive,
+                                ]}
+                                onPress={() => handleTransactionTypeSelect('CREDIT')}
+                                activeOpacity={0.8}
                             >
-                                <LinearGradient
-                                    colors={['#22c55e', '#16a34a']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.actionCard}
+                                <PlusCircle
+                                    size={14}
+                                    color={transactionType === 'CREDIT' ? '#10b981' : 'rgba(255,255,255,0.6)'}
+                                    strokeWidth={2}
+                                />
+                                <Text
+                                    style={[
+                                        styles.actionButtonText,
+                                        transactionType === 'CREDIT' && styles.actionButtonCreditText,
+                                    ]}
                                 >
-                                    <PlusCircle size={32} color="#fff" strokeWidth={1.8} />
-                                    <Text style={styles.actionButtonText}>
-                                        {t('card.credit').toUpperCase()}
-                                    </Text>
-                                </LinearGradient>
+                                    {t('card.credit').toUpperCase()}
+                                </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={styles.actionTouchable}
-                                onPress={() => setMode('debit')}
-                                activeOpacity={0.85}
+                                style={[
+                                    styles.actionButton,
+                                    transactionType === 'DEBIT' && styles.actionButtonDebitActive,
+                                ]}
+                                onPress={() => handleTransactionTypeSelect('DEBIT')}
+                                activeOpacity={0.8}
                             >
-                                <LinearGradient
-                                    colors={['#FA0011', '#c5000d']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.actionCard}
+                                <MinusCircle
+                                    size={14}
+                                    color={transactionType === 'DEBIT' ? '#ef4444' : 'rgba(255,255,255,0.6)'}
+                                    strokeWidth={2}
+                                />
+                                <Text
+                                    style={[
+                                        styles.actionButtonText,
+                                        transactionType === 'DEBIT' && styles.actionButtonDebitText,
+                                    ]}
                                 >
-                                    <MinusCircle size={32} color="#fff" strokeWidth={1.8} />
-                                    <Text style={styles.actionButtonText}>
-                                        {t('card.debit').toUpperCase()}
-                                    </Text>
-                                </LinearGradient>
+                                    {t('card.debit').toUpperCase()}
+                                </Text>
                             </TouchableOpacity>
                         </Animated.View>
                     )}
 
-                    {/* Amount input */}
-                    {selectedCategory && (mode === 'credit' || mode === 'debit') && (
-                        <AmountInput
-                            key={`input-${mode}`}
-                            mode={mode}
-                            category={selectedCategory}
-                            currentBalance={currentBalance}
-                            conversionRate={conversionRate(selectedCategory)}
-                            onDone={mode === 'credit' ? handleCreditDone : handleDebitDone}
-                            onCancel={() => setMode('idle')}
-                        />
+                    {/* Amount Input */}
+                    {selectedCategory && transactionType && (
+                        <Animated.View
+                            entering={FadeInDown.springify().damping(20).stiffness(200).delay(100)}
+                            exiting={FadeOutDown}
+                            style={styles.amountSection}
+                        >
+                            <Text style={styles.amountLabel}>
+                                {transactionType === 'DEBIT' ? t('card.enterPoints') : t('card.enterAmount')}
+                            </Text>
+                            {transactionType === 'DEBIT' && amount && selectedCategory && (
+                                <Text style={styles.equivalentText}>
+                                    {t('card.equivalentAmount', {
+                                        amount: formatIndian(String(parseInt(amount, 10) * conversionRate(selectedCategory))),
+                                    })}
+                                </Text>
+                            )}
+                            <TextInput
+                                style={styles.amountInput}
+                                placeholder="0"
+                                placeholderTextColor="rgba(255,255,255,0.05)"
+                                keyboardType="numeric"
+                                value={formatIndian(amount)}
+                                onChangeText={handleAmountChange}
+                                maxLength={15}
+                            />
+                            <View style={styles.amountUnderline} />
+                        </Animated.View>
                     )}
                 </ScrollView>
 
-                {/* Bottom bar */}
-                <CardBottomBar
-                    cardUid={cardUid!}
-                    onBlock={() => setShowBlockDialog(true)}
-                    showBlock={isActive}
-                />
-
-                {/* Block confirm dialog */}
-                <BlockConfirmDialog
-                    visible={showBlockDialog}
-                    onConfirm={handleBlock}
-                    onCancel={() => setShowBlockDialog(false)}
-                    isLoading={isBlocking}
-                />
-
-                {/* Success overlay */}
-                <SuccessOverlay
-                    visible={showSuccess}
-                    message={successMessage}
-                    onDismiss={() => setShowSuccess(false)}
-                />
+                {/* Process Transaction Button */}
+                {selectedCategory && transactionType && amount && (
+                    <Animated.View
+                        entering={FadeInDown.springify().damping(20).stiffness(200).delay(200)}
+                        exiting={FadeOutDown}
+                        style={styles.bottomSection}
+                    >
+                        <TouchableOpacity
+                            style={styles.processButton}
+                            onPress={handleProcessTransaction}
+                            disabled={isProcessing}
+                            activeOpacity={0.9}
+                        >
+                            {isProcessing ? (
+                                <ActivityIndicator color="#000" size="small" />
+                            ) : (
+                                <>
+                                    <Text style={styles.processButtonText}>{t('card.processTransaction').toUpperCase()}</Text>
+                                    <Zap size={18} color="#000" strokeWidth={2.5} />
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    </Animated.View>
+                )}
             </SafeAreaView>
-        </LinearGradient>
+
+            {/* Success overlay */}
+            <SuccessOverlay
+                visible={showSuccess}
+                transaction={transactionDetail}
+                onDismiss={() => {
+                    setShowSuccess(false);
+                    fetchCard();
+                }}
+            />
+
+            {/* Toast notification */}
+            <Toast
+                visible={toastVisible}
+                message={toastMessage}
+                type="error"
+                onHide={() => setToastVisible(false)}
+            />
+
+            {/* Bottom gradient fade */}
+            <View style={styles.bottomGradientFade} />
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#000',
+    },
+    flex: {
+        flex: 1,
+    },
+    bgGradientTop: {
+        position: 'absolute',
+        top: '-5%',
+        right: '-10%',
+        width: '60%',
+        height: '40%',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 999,
+        transform: [{ scale: 1.5 }],
+        opacity: 0.3,
+    },
+    bgGradientBottom: {
+        position: 'absolute',
+        bottom: '20%',
+        left: '-10%',
+        width: '50%',
+        height: '30%',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderRadius: 999,
+        transform: [{ scale: 1.5 }],
+        opacity: 0.3,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    errorText: {
-        fontSize: 16,
-        textAlign: 'center',
-        padding: 24,
-    },
     scrollContent: {
-        paddingBottom: 120,
-        paddingTop: 8,
+        paddingHorizontal: 28,
+        paddingTop: 0,
+        paddingBottom: 200,
     },
-    topBar: {
+    header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 12,
-        marginBottom: 28,
+        justifyContent: 'space-between',
+        paddingTop: 16,
+        marginBottom: 32,
     },
-    closeButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+    backButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
         justifyContent: 'center',
+        marginLeft: -8,
+    },
+    headerTitleContainer: {
         alignItems: 'center',
     },
-    holderInfo: {
-        flex: 1,
-        alignItems: 'flex-end',
+    headerSubtitle: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#6b7280',
+        letterSpacing: 6.4,
+        textTransform: 'uppercase',
+        marginBottom: 4,
     },
-    holderName: {
-        fontSize: 22,
-        fontWeight: '800',
-    },
-    holderMobile: {
+    headerTitle: {
         fontSize: 14,
-        marginTop: 2,
+        fontWeight: '500',
+        color: 'rgba(255,255,255,0.9)',
+        fontFamily: 'sans-serif',
     },
-    blockedNotice: {
-        marginHorizontal: 20,
-        padding: 16,
-        borderRadius: 14,
+    headerSpacer: {
+        width: 40,
+    },
+    memberCard: {
+        marginBottom: 32,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    memberCardGradient: {
         borderWidth: 1,
-        marginBottom: 20,
+        borderColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 16,
+        padding: 20,
     },
-    blockedText: {
-        fontSize: 14,
-        textAlign: 'center',
-        fontWeight: '600',
-        color: '#ef4444',
-    },
-    categoryRow: {
+    memberCardContent: {
         flexDirection: 'row',
-        paddingHorizontal: 20,
-        gap: 12,
-        marginBottom: 20,
+        alignItems: 'center',
+        gap: 16,
     },
-    actionRow: {
-        flexDirection: 'row',
-        paddingHorizontal: 20,
-        gap: 12,
-        marginTop: 4,
-    },
-    actionTouchable: {
-        flex: 1,
-    },
-    actionCard: {
-        borderRadius: 18,
-        paddingVertical: 28,
+    avatarContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(31,41,55,0.8)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
+    },
+    memberInfo: {
+        flex: 1,
+    },
+    memberLabel: {
+        fontSize: 10,
+        letterSpacing: 2.4,
+        color: '#6b7280',
+        fontWeight: '500',
+        textTransform: 'uppercase',
+        marginBottom: 2,
+    },
+    memberName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#fff',
+        letterSpacing: 1.2,
+    },
+    historyButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    sectionLabel: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#6b7280',
+        letterSpacing: 3.2,
+        textTransform: 'uppercase',
+        marginBottom: 24,
+        marginLeft: 4,
+    },
+    categoryGrid: {
+        flexDirection: 'row',
+        gap: 16,
+        marginBottom: 40,
+    },
+    categoryCard: {
+        flex: 1,
+        aspectRatio: 1,
+        borderRadius: 24,
+        backgroundColor: 'transparent',
+    },
+    categoryCardActive: {},
+    categoryCardGradientActive: {
+        borderColor: 'rgba(255,255,255,0.5)',
+        borderWidth: 2,
+    },
+    categoryCardGradient: {
+        flex: 1,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.15)',
+        borderRadius: 24,
+        padding: 24,
+        justifyContent: 'space-between',
+        overflow: 'hidden',
+    },
+    categoryCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    activeIndicator: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#fff',
+    },
+    categoryCardFooter: {},
+    categoryName: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: 'rgba(255,255,255,0.9)',
+        marginBottom: 4,
+    },
+    categoryNameActive: {
+        color: '#fff',
+        fontWeight: '600' as const,
+    },
+    pointsRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 4,
+    },
+    pointsValue: {
+        fontSize: 20,
+        fontFamily: 'serif',
+        color: '#fff',
+    },
+    pointsValueActive: {
+        color: '#fff',
+        fontWeight: '700' as const,
+    },
+    pointsUnit: {
+        fontSize: 9,
+        color: '#6b7280',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+    },
+    actionButtonsContainer: {
+        flexDirection: 'row',
+        gap: 16,
+        marginBottom: 40,
+    },
+    actionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 16,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+    },
+    actionButtonCreditActive: {
+        backgroundColor: 'rgba(16,185,129,0.08)',
+        borderColor: '#10b981',
+        borderWidth: 1.5,
+    },
+    actionButtonDebitActive: {
+        backgroundColor: 'rgba(239,68,68,0.08)',
+        borderColor: '#ef4444',
+        borderWidth: 1.5,
     },
     actionButtonText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: 'rgba(255,255,255,0.6)',
+        letterSpacing: 3.2,
+        textTransform: 'uppercase',
+    },
+    actionButtonCreditText: {
+        color: '#10b981',
+    },
+    actionButtonDebitText: {
+        color: '#ef4444',
+    },
+    amountSection: {
+        paddingTop: 16,
+        alignItems: 'center',
+    },
+    amountLabel: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#9ca3af',
+        letterSpacing: 3.2,
+        textTransform: 'uppercase',
+        marginBottom: 8,
+    },
+    amountInput: {
+        width: '100%',
+        fontSize: 48,
+        fontFamily: 'serif',
+        letterSpacing: 4,
         color: '#fff',
-        fontSize: 16,
-        fontWeight: '800',
+        textAlign: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 0,
+    },
+    amountUnderline: {
+        width: '100%',
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.3)',
+    },
+    equivalentText: {
+        fontSize: 12,
+        color: '#6b7280',
+        marginBottom: 4,
         letterSpacing: 1,
+    },
+    bottomSection: {
+        paddingHorizontal: 28,
+        paddingBottom: 40,
+    },
+    processButton: {
+        backgroundColor: '#fff',
+        height: 56,
+        borderRadius: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+    },
+    processButtonText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#000',
+        letterSpacing: 4.8,
+        textTransform: 'uppercase',
+    },
+    bottomGradientFade: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 160,
+        backgroundColor: 'transparent',
     },
     notFoundContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    notFoundContent: {
-        alignItems: 'center',
         paddingHorizontal: 32,
-        maxWidth: 400,
     },
     notFoundTitle: {
-        fontSize: 24,
-        fontWeight: '800',
+        fontSize: 20,
+        fontStyle: 'italic',
+        color: '#fff',
+        fontFamily: 'serif',
         marginBottom: 12,
         textAlign: 'center',
     },
     notFoundMessage: {
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: 8,
-        lineHeight: 24,
-    },
-    cardUidText: {
         fontSize: 14,
-        fontFamily: 'monospace',
+        color: '#6b7280',
+        letterSpacing: 1.2,
+        textAlign: 'center',
         marginBottom: 32,
-        opacity: 0.7,
+        lineHeight: 22,
     },
-    enrollButtonWrapper: {
-        width: '100%',
-        marginBottom: 16,
-    },
-    enrollButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-        paddingVertical: 18,
+    goBackButton: {
+        backgroundColor: '#fff',
         paddingHorizontal: 32,
-        borderRadius: 16,
+        paddingVertical: 16,
+        borderRadius: 0,
     },
-    enrollButtonText: {
-        color: '#fff',
-        fontSize: 18,
+    goBackButtonText: {
+        fontSize: 11,
         fontWeight: '700',
-    },
-    backButton: {
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-    },
-    backButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
+        color: '#000',
+        letterSpacing: 4,
+        textTransform: 'uppercase',
     },
 });

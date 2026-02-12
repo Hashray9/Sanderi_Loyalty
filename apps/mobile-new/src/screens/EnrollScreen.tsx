@@ -9,19 +9,17 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
-    ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import Animated, { FadeInLeft, FadeInRight } from 'react-native-reanimated';
-import { useTheme } from '@/contexts/ThemeContext';
+import LinearGradient from 'react-native-linear-gradient';
+import { X, Search, AlertCircle, Nfc, ArrowRight } from 'lucide-react-native';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
-import { api } from '@/lib/api';
 import { v4 as uuidv4 } from 'uuid';
-import { SuccessOverlay } from '@/components/SuccessOverlay';
 
 const enrollSchema = z.object({
     customerName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -30,34 +28,14 @@ const enrollSchema = z.object({
 
 type EnrollForm = z.infer<typeof enrollSchema>;
 
-type Tab = 'new' | 'existing';
-
-interface ExistingCustomer {
-    cardUid: string;
-    name: string;
-    mobileNumber: string;
-    hardwarePoints: number;
-    plywoodPoints: number;
-}
-
 export default function EnrollScreen() {
     const route = useRoute<any>();
     const navigation = useNavigation<any>();
     const { cardUid } = route.params;
     const { t } = useTranslation();
-    const { colors } = useTheme();
     const { addAction } = useOfflineQueue();
 
-    const [tab, setTab] = useState<Tab>('new');
     const [isLoading, setIsLoading] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
-
-    // Existing customer search state
-    const [searchMobile, setSearchMobile] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-    const [foundCustomer, setFoundCustomer] = useState<ExistingCustomer | null>(null);
-    const [searchDone, setSearchDone] = useState(false);
 
     const {
         control,
@@ -71,7 +49,7 @@ export default function EnrollScreen() {
         },
     });
 
-    const onSubmitNew = async (data: EnrollForm) => {
+    const onSubmit = async (data: EnrollForm) => {
         setIsLoading(true);
         try {
             await addAction({
@@ -84,160 +62,99 @@ export default function EnrollScreen() {
                 },
             });
 
-            setSuccessMessage(t('enroll.successMessage'));
-            setShowSuccess(true);
-        } catch {
-            Alert.alert(t('common.error'), t('enroll.failed'));
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleSearch = async () => {
-        if (searchMobile.length < 10) {
-            Alert.alert(t('common.error'), t('lookup.invalidMobile'));
-            return;
-        }
-
-        setIsSearching(true);
-        setFoundCustomer(null);
-        setSearchDone(false);
-
-        try {
-            const response = await api.get('/customers/search', {
-                params: { mobile: searchMobile },
-            });
-
-            if (response.data.found) {
-                setFoundCustomer(response.data.customer);
-            }
-            setSearchDone(true);
-        } catch {
-            Alert.alert(t('common.error'), t('lookup.searchFailed'));
-        } finally {
-            setIsSearching(false);
-        }
-    };
-
-    const handleTransfer = async () => {
-        if (!foundCustomer) return;
-
-        setIsLoading(true);
-        try {
-            // Block old card
-            await addAction({
-                entryId: uuidv4(),
-                actionType: 'BLOCK',
-                payload: {
-                    cardUid: foundCustomer.cardUid,
-                    reason: 'OTHER',
+            Alert.alert('Success', 'Member enrolled successfully', [
+                {
+                    text: 'OK',
+                    onPress: () => navigation.navigate('Scan'),
                 },
-            });
-
-            // Reissue to new card
-            await api.post('/cards/reissue', {
-                oldCardUid: foundCustomer.cardUid,
-                newCardUid: cardUid,
-            });
-
-            setSuccessMessage(t('enroll.transferSuccess'));
-            setShowSuccess(true);
+            ]);
         } catch {
-            Alert.alert(t('common.error'), t('reissue.failed'));
+            Alert.alert(t('common.error'), 'Failed to enroll member');
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <KeyboardAvoidingView
-            style={[styles.container, { backgroundColor: colors.background }]}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-            >
-                {/* Top bar */}
-                <View style={styles.topBar}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-                        <Text style={[styles.closeIcon, { color: colors.text }]}>✕</Text>
-                    </TouchableOpacity>
-                    <Text style={[styles.title, { color: colors.text }]}>
-                        {t('card.enroll')}
-                    </Text>
-                    <View style={styles.closeButton} />
-                </View>
+        <View style={styles.container}>
+            {/* Background gradients */}
+            <View style={styles.bgGradientTop} />
+            <View style={styles.bgGradientBottom} />
 
-                {/* Card UID */}
-                <View style={[styles.cardInfo, { backgroundColor: colors.secondary }]}>
-                    <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>
-                        {t('enroll.cardUid')}
-                    </Text>
-                    <Text style={[styles.cardUid, { color: colors.text }]}>{cardUid}</Text>
-                </View>
+            <SafeAreaView style={styles.safeArea}>
+                <KeyboardAvoidingView
+                    style={styles.flex}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                >
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <View style={styles.entryErrorBadge}>
+                            <AlertCircle size={14} color="#ef4444" strokeWidth={2} />
+                            <Text style={styles.entryErrorText}>ENTRY ERROR</Text>
+                        </View>
+                        <View style={styles.headerActions}>
+                            <TouchableOpacity
+                                style={styles.searchButton}
+                                onPress={() => navigation.navigate('Lookup')}
+                                activeOpacity={0.7}
+                            >
+                                <Search size={20} color="#fff" strokeWidth={1.5} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={() => navigation.goBack()}
+                                activeOpacity={0.7}
+                            >
+                                <X size={20} color="rgba(156,163,175,1)" strokeWidth={1.5} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
 
-                {/* Tab toggle */}
-                <View style={[styles.tabRow, { backgroundColor: colors.secondary }]}>
-                    <TouchableOpacity
-                        style={[
-                            styles.tabButton,
-                            tab === 'new' && { backgroundColor: colors.primary },
-                        ]}
-                        onPress={() => setTab('new')}
-                    >
-                        <Text
-                            style={[
-                                styles.tabText,
-                                { color: tab === 'new' ? '#fff' : colors.textSecondary },
-                            ]}
-                        >
-                            {t('enroll.newCustomer')}
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[
-                            styles.tabButton,
-                            tab === 'existing' && { backgroundColor: colors.primary },
-                        ]}
-                        onPress={() => setTab('existing')}
-                    >
-                        <Text
-                            style={[
-                                styles.tabText,
-                                { color: tab === 'existing' ? '#fff' : colors.textSecondary },
-                            ]}
-                        >
-                            {t('enroll.existingCustomer')}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
+                    {/* Title */}
+                    <View style={styles.titleSection}>
+                        <Text style={styles.title}>Card Not Found</Text>
+                        <Text style={styles.subtitle}>REGISTER NEW MEMBER CREDENTIALS</Text>
+                    </View>
 
-                {/* New Customer Form */}
-                {tab === 'new' && (
-                    <Animated.View
-                        entering={FadeInLeft.springify().damping(20).stiffness(200)}
-                        style={styles.formSection}
-                    >
+                    {/* Card display */}
+                    <View style={styles.cardPerspective}>
+                        <View style={styles.card3D}>
+                            <LinearGradient
+                                colors={['#111111', '#050505']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.cardGradient}
+                            >
+                                {/* Glow overlay */}
+                                <View style={styles.cardGlowOverlay} />
+
+                                {/* Card header */}
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.chipContainer} />
+                                    <Nfc size={30} color="rgba(255,255,255,0.2)" strokeWidth={1.5} />
+                                </View>
+
+                                {/* Card footer */}
+                                <View style={styles.cardFooter}>
+                                    <Text style={styles.chipLabel}>CHIP ID DETECTED</Text>
+                                    <Text style={styles.chipId}>ID: {cardUid}</Text>
+                                </View>
+                            </LinearGradient>
+                        </View>
+                    </View>
+
+                    {/* Form inputs */}
+                    <View style={styles.formSection}>
                         <Controller
                             control={control}
                             name="customerName"
                             render={({ field: { onChange, onBlur, value } }) => (
                                 <View style={styles.inputContainer}>
-                                    <Text style={[styles.label, { color: colors.text }]}>
-                                        {t('enroll.customerName')}
-                                    </Text>
+                                    <Text style={styles.inputLabel}>FULL NAME</Text>
                                     <TextInput
-                                        style={[
-                                            styles.input,
-                                            {
-                                                backgroundColor: colors.inputBackground,
-                                                color: colors.text,
-                                                borderColor: errors.customerName ? colors.error : colors.border,
-                                            },
-                                        ]}
-                                        placeholder={t('enroll.namePlaceholder')}
-                                        placeholderTextColor={colors.textSecondary}
+                                        style={[styles.input, errors.customerName && styles.inputError]}
+                                        placeholder="Enter member name"
+                                        placeholderTextColor="rgba(255,255,255,0.12)"
                                         onBlur={onBlur}
                                         onChangeText={onChange}
                                         value={value}
@@ -245,9 +162,7 @@ export default function EnrollScreen() {
                                         autoCapitalize="words"
                                     />
                                     {errors.customerName && (
-                                        <Text style={[styles.errorText, { color: colors.error }]}>
-                                            {errors.customerName.message}
-                                        </Text>
+                                        <Text style={styles.errorText}>{errors.customerName.message}</Text>
                                     )}
                                 </View>
                             )}
@@ -258,20 +173,11 @@ export default function EnrollScreen() {
                             name="customerMobile"
                             render={({ field: { onChange, onBlur, value } }) => (
                                 <View style={styles.inputContainer}>
-                                    <Text style={[styles.label, { color: colors.text }]}>
-                                        {t('enroll.customerMobile')}
-                                    </Text>
+                                    <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
                                     <TextInput
-                                        style={[
-                                            styles.input,
-                                            {
-                                                backgroundColor: colors.inputBackground,
-                                                color: colors.text,
-                                                borderColor: errors.customerMobile ? colors.error : colors.border,
-                                            },
-                                        ]}
-                                        placeholder={t('enroll.mobilePlaceholder')}
-                                        placeholderTextColor={colors.textSecondary}
+                                        style={[styles.input, errors.customerMobile && styles.inputError]}
+                                        placeholder="+1 (000) 000-0000"
+                                        placeholderTextColor="rgba(255,255,255,0.12)"
                                         keyboardType="phone-pad"
                                         onBlur={onBlur}
                                         onChangeText={onChange}
@@ -280,297 +186,300 @@ export default function EnrollScreen() {
                                         maxLength={15}
                                     />
                                     {errors.customerMobile && (
-                                        <Text style={[styles.errorText, { color: colors.error }]}>
-                                            {errors.customerMobile.message}
-                                        </Text>
+                                        <Text style={styles.errorText}>{errors.customerMobile.message}</Text>
                                     )}
                                 </View>
                             )}
                         />
+                    </View>
 
+                    {/* Footer with Enroll button */}
+                    <View style={styles.footer}>
                         <TouchableOpacity
-                            style={[styles.submitButton, { backgroundColor: colors.primary }]}
-                            onPress={handleSubmit(onSubmitNew)}
+                            style={styles.enrollButton}
+                            onPress={handleSubmit(onSubmit)}
                             disabled={isLoading}
+                            activeOpacity={0.9}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color="#000" />
                             ) : (
-                                <Text style={styles.submitButtonText}>{t('enroll.submit')}</Text>
+                                <>
+                                    <Text style={styles.enrollButtonText}>ENROLL MEMBER</Text>
+                                    <View style={styles.enrollButtonArrow}>
+                                        <View style={styles.arrowLine} />
+                                        <ArrowRight size={18} color="#000" strokeWidth={2.5} />
+                                    </View>
+                                </>
                             )}
                         </TouchableOpacity>
-                    </Animated.View>
-                )}
+                    </View>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
 
-                {/* Existing Customer Search */}
-                {tab === 'existing' && (
-                    <Animated.View
-                        entering={FadeInRight.springify().damping(20).stiffness(200)}
-                        style={styles.formSection}
-                    >
-                        <Text style={[styles.label, { color: colors.text }]}>
-                            {t('enroll.searchCustomer')}
-                        </Text>
-                        <View style={styles.searchRow}>
-                            <TextInput
-                                style={[
-                                    styles.input,
-                                    {
-                                        flex: 1,
-                                        backgroundColor: colors.inputBackground,
-                                        color: colors.text,
-                                        borderColor: colors.border,
-                                    },
-                                ]}
-                                placeholder={t('lookup.mobilePlaceholder')}
-                                placeholderTextColor={colors.textSecondary}
-                                keyboardType="phone-pad"
-                                value={searchMobile}
-                                onChangeText={setSearchMobile}
-                                maxLength={15}
-                            />
-                            <TouchableOpacity
-                                style={[styles.searchButton, { backgroundColor: colors.primary }]}
-                                onPress={handleSearch}
-                                disabled={isSearching}
-                            >
-                                {isSearching ? (
-                                    <ActivityIndicator color="#fff" size="small" />
-                                ) : (
-                                    <Text style={styles.searchButtonText}>{t('lookup.search')}</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-
-                        {searchDone && !foundCustomer && (
-                            <View style={[styles.notFoundCard, { backgroundColor: colors.secondary }]}>
-                                <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>
-                                    {t('lookup.notFound')}
-                                </Text>
-                            </View>
-                        )}
-
-                        {foundCustomer && (
-                            <View style={[styles.customerCard, { backgroundColor: colors.card }]}>
-                                <Text style={[styles.customerName, { color: colors.text }]}>
-                                    {foundCustomer.name}
-                                </Text>
-                                <Text style={[styles.customerMobile, { color: colors.textSecondary }]}>
-                                    {foundCustomer.mobileNumber}
-                                </Text>
-                                <View style={styles.pointsRow}>
-                                    <View style={styles.pointBox}>
-                                        <Text style={[styles.pointLabel, { color: colors.textSecondary }]}>
-                                            {t('points.hardware')}
-                                        </Text>
-                                        <Text style={[styles.pointValue, { color: colors.text }]}>
-                                            {foundCustomer.hardwarePoints}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.pointBox}>
-                                        <Text style={[styles.pointLabel, { color: colors.textSecondary }]}>
-                                            {t('points.plywood')}
-                                        </Text>
-                                        <Text style={[styles.pointValue, { color: colors.text }]}>
-                                            {foundCustomer.plywoodPoints}
-                                        </Text>
-                                    </View>
-                                </View>
-
-                                <Text style={[styles.transferNote, { color: colors.warning }]}>
-                                    {t('enroll.transferConfirm')}
-                                </Text>
-
-                                <TouchableOpacity
-                                    style={[styles.submitButton, { backgroundColor: colors.primary }]}
-                                    onPress={handleTransfer}
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? (
-                                        <ActivityIndicator color="#fff" />
-                                    ) : (
-                                        <Text style={styles.submitButtonText}>
-                                            {t('enroll.transferAndAssign')}
-                                        </Text>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    </Animated.View>
-                )}
-            </ScrollView>
-
-            <SuccessOverlay
-                visible={showSuccess}
-                message={successMessage}
-                onDismiss={() => {
-                    setShowSuccess(false);
-                    // Navigate back to Scan screen
-                    navigation.navigate('Scan');
-                }}
-            />
-        </KeyboardAvoidingView>
+            {/* Bottom gradient fade */}
+            <View style={styles.bottomGradientFade} />
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#000',
     },
-    scrollContent: {
-        padding: 16,
-        paddingBottom: 40,
+    safeArea: {
+        flex: 1,
     },
-    topBar: {
+    flex: {
+        flex: 1,
+    },
+    bgGradientTop: {
+        position: 'absolute',
+        top: '-10%',
+        right: '-10%',
+        width: '70%',
+        height: '50%',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 999,
+        opacity: 1,
+    },
+    bgGradientBottom: {
+        position: 'absolute',
+        bottom: '-10%',
+        left: '-10%',
+        width: '60%',
+        height: '40%',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderRadius: 999,
+        opacity: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 32,
+        paddingTop: 8,
+        marginBottom: 32,
+    },
+    entryErrorBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingTop: 48,
-        marginBottom: 16,
+        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    entryErrorText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: 'rgba(156,163,175,1)',
+        letterSpacing: 3.2,
+        textTransform: 'uppercase',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    searchButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: 'rgba(255,255,255,0.4)',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 8,
     },
     closeButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
         alignItems: 'center',
+        justifyContent: 'center',
     },
-    closeIcon: {
-        fontSize: 20,
-        fontWeight: '300',
+    titleSection: {
+        alignItems: 'center',
+        marginBottom: 48,
     },
     title: {
-        fontSize: 18,
+        fontSize: 28,
         fontWeight: '600',
+        fontFamily: 'serif',
+        color: '#f5f5f5',
+        letterSpacing: -0.5,
+        marginBottom: 8,
     },
-    cardInfo: {
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 16,
+    subtitle: {
+        fontSize: 11,
+        fontWeight: '300',
+        color: '#6b7280',
+        letterSpacing: 1.6,
+        textTransform: 'uppercase',
+    },
+    cardPerspective: {
+        height: 192,
         alignItems: 'center',
-    },
-    cardLabel: {
-        fontSize: 12,
-        marginBottom: 4,
-    },
-    cardUid: {
-        fontSize: 18,
-        fontWeight: '600',
-        fontFamily: 'monospace',
-    },
-    tabRow: {
-        flexDirection: 'row',
-        borderRadius: 12,
-        padding: 4,
-        marginBottom: 24,
-    },
-    tabButton: {
-        flex: 1,
-        height: 40,
-        borderRadius: 10,
         justifyContent: 'center',
-        alignItems: 'center',
+        marginBottom: 48,
     },
-    tabText: {
-        fontSize: 14,
-        fontWeight: '600',
+    card3D: {
+        width: 320,
+        height: 192,
+        borderRadius: 20,
+        overflow: 'hidden',
+        transform: [
+            { perspective: 1200 },
+            { rotateX: '15deg' },
+            { rotateY: '-10deg' },
+        ],
+        shadowColor: '#000',
+        shadowOffset: { width: -20, height: 20 },
+        shadowOpacity: 0.8,
+        shadowRadius: 50,
+        elevation: 20,
+    },
+    cardGradient: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 20,
+        padding: 24,
+        justifyContent: 'space-between',
+        position: 'relative',
+    },
+    cardGlowOverlay: {
+        position: 'absolute',
+        top: -64,
+        right: -64,
+        width: 128,
+        height: 128,
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderRadius: 64,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        zIndex: 10,
+    },
+    chipContainer: {
+        width: 48,
+        height: 36,
+        borderRadius: 8,
+        backgroundColor: 'rgba(55,65,81,1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+        opacity: 0.4,
+    },
+    cardFooter: {
+        zIndex: 10,
+    },
+    chipLabel: {
+        fontSize: 10,
+        fontWeight: '500',
+        color: '#6b7280',
+        fontFamily: 'monospace',
+        letterSpacing: 3.2,
+        marginBottom: 4,
+        opacity: 0.6,
+    },
+    chipId: {
+        fontSize: 18,
+        fontWeight: '500',
+        color: '#fff',
+        fontFamily: 'monospace',
+        letterSpacing: 2.4,
+        textShadowColor: 'rgba(255,255,255,0.3)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
     },
     formSection: {
-        gap: 16,
+        paddingHorizontal: 40,
+        gap: 32,
+        marginBottom: 48,
     },
     inputContainer: {
         gap: 4,
     },
-    label: {
-        fontSize: 14,
+    inputLabel: {
+        fontSize: 10,
         fontWeight: '500',
+        color: '#6b7280',
+        letterSpacing: 3.2,
+        textTransform: 'uppercase',
+        marginBottom: 4,
     },
     input: {
-        height: 48,
-        borderWidth: 1,
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        fontSize: 16,
-    },
-    errorText: {
-        fontSize: 12,
-        marginTop: 4,
-    },
-    searchRow: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    searchButton: {
-        height: 48,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    searchButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    notFoundCard: {
-        padding: 24,
-        borderRadius: 12,
-        alignItems: 'center',
-        marginTop: 16,
-    },
-    notFoundText: {
-        fontSize: 14,
-    },
-    customerCard: {
-        padding: 20,
-        borderRadius: 16,
-        marginTop: 16,
-    },
-    customerName: {
-        fontSize: 20,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    customerMobile: {
-        fontSize: 14,
-        marginBottom: 16,
-    },
-    pointsRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 16,
-    },
-    pointBox: {
-        flex: 1,
-        alignItems: 'center',
-        padding: 12,
-        borderRadius: 8,
-        backgroundColor: 'rgba(0,0,0,0.05)',
-    },
-    pointLabel: {
-        fontSize: 12,
-        marginBottom: 4,
-    },
-    pointValue: {
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    transferNote: {
-        fontSize: 13,
-        textAlign: 'center',
-        marginBottom: 16,
-        lineHeight: 18,
-    },
-    submitButton: {
-        height: 52,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 8,
-    },
-    submitButtonText: {
+        backgroundColor: 'transparent',
+        borderTopWidth: 0,
+        borderLeftWidth: 0,
+        borderRightWidth: 0,
+        borderBottomWidth: 2,
+        borderBottomColor: 'rgba(107,114,128,0.3)',
         color: '#fff',
         fontSize: 18,
-        fontWeight: '600',
+        fontWeight: '300',
+        paddingVertical: 12,
+        paddingHorizontal: 0,
+    },
+    inputError: {
+        borderBottomColor: '#ef4444',
+    },
+    errorText: {
+        fontSize: 11,
+        color: '#ef4444',
+        marginTop: 4,
+    },
+    footer: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        paddingHorizontal: 28,
+        paddingBottom: 24,
+    },
+    enrollButton: {
+        backgroundColor: '#fff',
+        height: 56,
+        borderRadius: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 28,
+    },
+    enrollButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#000',
+        letterSpacing: 2.2,
+    },
+    enrollButtonArrow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    arrowLine: {
+        width: 36,
+        height: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    bottomGradientFade: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 128,
+        backgroundColor: 'transparent',
+        pointerEvents: 'none',
     },
 });

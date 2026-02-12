@@ -20,7 +20,18 @@
     "biometricPrompt": "લૉગિન કરવા માટે પ્રમાણિત કરો",
     "error": "લૉગિન નિષ્ફળ",
     "invalidCredentials": "અમાન્ય મોબાઇલ નંબર અથવા પાસવર્ડ",
-    "biometricFailed": "બાયોમેટ્રિક પ્રમાણીકરણ નિષ્ફળ"
+    "biometricFailed": "બાયોમેટ્રિક પ્રમાણીકરણ નિષ્ફળ",
+    "signup": "સાઇન અપ",
+    "signupSubtitle": "તમારું સ્ટાફ એકાઉન્ટ બનાવો",
+    "name": "પૂરું નામ",
+    "namePlaceholder": "તમારું પૂરું નામ દાખલ કરો",
+    "inviteCode": "ઇન્વાઇટ કોડ",
+    "inviteCodePlaceholder": "એડમિન પાસેથી ઇન્વાઇટ કોડ દાખલ કરો",
+    "confirmPassword": "પાસવર્ડ ખાતરી કરો",
+    "confirmPasswordPlaceholder": "પાસવર્ડ ફરીથી દાખલ કરો",
+    "alreadyHaveAccount": "પહેલેથી એકાઉન્ટ છે? લૉગિન કરો",
+    "noAccount": "એકાઉન્ટ નથી? સાઇન અપ કરો",
+    "signupError": "સાઇન અપ નિષ્ફળ"
   },
   "tabs": {
     "scan": "સ્કેન",
@@ -77,7 +88,18 @@
     "done": "પૂર્ણ",
     "totalPoints": "કુલ પોઈન્ટ્સ",
     "pointsEarned": "મેળવેલ પોઈન્ટ્સ",
-    "rupeesEquivalent": "રૂપિયા સમકક્ષ"
+    "rupeesEquivalent": "રૂપિયા સમકક્ષ",
+    "selectCategory": "કેટેગરી પસંદ કરો",
+    "enterAmount": "રકમ દાખલ કરો",
+    "enterPoints": "પોઈન્ટ્સ દાખલ કરો",
+    "equivalentAmount": "≈ ₹{{amount}}",
+    "processTransaction": "વ્યવહાર પ્રક્રિયા કરો",
+    "pointManager": "પોઈન્ટ મેનેજર",
+    "transaction": "વ્યવહાર",
+    "member": "સભ્ય",
+    "goBack": "પાછા જાઓ",
+    "cardNotFoundDetails": "કાર્ડ મળી શક્યું નથી. કૃપા કરીને ફરી પ્રયાસ કરો.",
+    "cannotDebitMore": "{{points}} પોઈન્ટ્સ કરતાં વધુ ડેબિટ કરી શકાતા નથી"
   },
   "points": {
     "hardware": "હાર્ડવેર",
@@ -184,11 +206,25 @@
     "version": "વર્ઝન",
     "logout": "લૉગઆઉટ",
     "logoutConfirmTitle": "લૉગઆઉટ",
-    "logoutConfirmMessage": "શું તમે ખરેખર લૉગઆઉટ કરવા માંગો છો?"
+    "logoutConfirmMessage": "શું તમે ખરેખર લૉગઆઉટ કરવા માંગો છો?",
+    "inviteCode": "ઇન્વાઇટ કોડ",
+    "inviteCodeHint": "નવા સ્ટાફને સાઇન અપ કરવા આ કોડ શેર કરો",
+    "inviteCodeUpdated": "ઇન્વાઇટ કોડ સફળતાપૂર્વક અપડેટ થયો",
+    "inviteCodeFailed": "ઇન્વાઇટ કોડ અપડેટ કરવામાં નિષ્ફળ",
+    "inviteCodeLoadFailed": "ઇન્વાઇટ કોડ લોડ કરવામાં નિષ્ફળ",
+    "enterNewInviteCode": "નવો ઇન્વાઇટ કોડ દાખલ કરો",
+    "save": "સાચવો"
   },
   "success": {
     "transactionComplete": "વ્યવહાર પૂર્ણ",
     "pointsCredited": "પોઈન્ટ્સ સફળતાપૂર્વક ક્રેડિટ થયા",
-    "pointsRedeemed": "પોઈન્ટ્સ સફળતાપૂર્વક વટાવ્યા"
+    "pointsRedeemed": "પોઈન્ટ્સ સફળતાપૂર્વક વટાવ્યા",
+    "transactionSuccessful": "વ્યવહાર સફળ",
+    "transactionStatus": "વ્યવહાર સ્થિતિ",
+    "transactionDetails": "વ્યવહાર વિગતો",
+    "creditedTo": "ક્રેડિટ થયા",
+    "debitedFrom": "ડેબિટ થયા",
+    "transactionId": "વ્યવહાર ID",
+    "newBalance": "નવી બેલેન્સ"
   }
 }

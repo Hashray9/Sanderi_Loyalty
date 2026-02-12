@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Alert,
   Linking,
+  Animated,
+  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,8 +17,9 @@ import {
   Nfc,
   Search,
   Settings,
-  WifiOff,
-  CloudUpload,
+  Check,
+  Plus,
+  ArrowRight,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,12 +27,111 @@ import { useNfc } from '@/hooks/useNfc';
 import { useNetwork } from '@/hooks/useNetwork';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useSound } from '@/hooks/useSound';
-import { FloatingCard } from '@/components/FloatingCard';
-import { PulsingText } from '@/components/PulsingText';
 import { SparkleParticles } from '@/components/SparkleParticles';
 
-const DARK_GRADIENT = ['#050505', '#1c150e', '#18101e', '#0a0a0a'];
-const LIGHT_GRADIENT = ['#faf8f5', '#f5ede4', '#f0eaf2', '#f8f6f4'];
+// Ripple animation component
+function RippleCircle({
+  delay = 0,
+  baseScale,
+}: {
+  delay?: number;
+  baseScale?: Animated.Value;
+}) {
+  const scale = useState(() => new Animated.Value(0.6))[0];
+  const opacity = useState(() => new Animated.Value(0.8))[0];
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.parallel([
+        Animated.timing(scale, {
+          toValue: 2.5,
+          duration: 3000,
+          delay,
+          easing: Easing.bezier(0, 0.2, 0.8, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 3000,
+          delay,
+          easing: Easing.bezier(0, 0.2, 0.8, 1),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [delay, scale, opacity]);
+
+  const combinedScale = baseScale ? Animated.multiply(scale, baseScale) : scale;
+
+  return (
+    <Animated.View
+      style={[
+        styles.rippleCircle,
+        {
+          transform: [{ scale: combinedScale }],
+          opacity,
+        },
+      ]}
+    />
+  );
+}
+
+// Scanning line animation component
+function ScanningLine({ isVisible }: { isVisible: boolean }) {
+  const translateY = useState(() => new Animated.Value(0))[0];
+  const lineOpacity = useState(() => new Animated.Value(0))[0];
+
+  useEffect(() => {
+    if (isVisible) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(lineOpacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateY, {
+            toValue: 390, // Adjusted for scaled card
+            duration: 3400,
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+          Animated.timing(lineOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+    } else {
+      translateY.setValue(0);
+      lineOpacity.setValue(0);
+    }
+  }, [isVisible, translateY, lineOpacity]);
+
+  if (!isVisible) return null;
+
+  return (
+    <Animated.View
+      style={[
+        styles.scanLine,
+        {
+          transform: [{ translateY }],
+          opacity: lineOpacity,
+        },
+      ]}
+    >
+      <LinearGradient
+        colors={['transparent', 'rgba(255,255,255,0.8)', 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.scanLineGradient}
+      />
+    </Animated.View>
+  );
+}
 
 export default function ScanScreen() {
   const navigation = useNavigation<any>();
@@ -50,6 +152,12 @@ export default function ScanScreen() {
   const [isScanning, setIsScanning] = useState(false);
   const [sparkle, setSparkle] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
+
+  // Animation values
+  const titleOpacity = useState(() => new Animated.Value(1))[0];
+  const cardScale = useState(() => new Animated.Value(1))[0];
+  const cardTranslateY = useState(() => new Animated.Value(0))[0];
+  const rippleScale = useState(() => new Animated.Value(1))[0];
 
   const isDark = colorScheme === 'dark';
 
@@ -72,19 +180,86 @@ export default function ScanScreen() {
       return;
     }
 
+    // Animate elements
+    Animated.parallel([
+      // Fade out title
+      Animated.timing(titleOpacity, {
+        toValue: 0,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      // Scale up card
+      Animated.spring(cardScale, {
+        toValue: 1.3,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      // Move card up
+      Animated.spring(cardTranslateY, {
+        toValue: -50,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      // Expand ripples
+      Animated.timing(rippleScale, {
+        toValue: 1.5,
+        duration: 600,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     setIsScanning(true);
     try {
       await startScan();
     } catch {
       Alert.alert(t('common.error'), t('nfc.scanFailed'));
-      setIsScanning(false);
+      handleStopScan();
     }
-  }, [isSupported, isEnabled, startScan, t]);
+  }, [
+    isSupported,
+    isEnabled,
+    startScan,
+    t,
+    titleOpacity,
+    cardScale,
+    cardTranslateY,
+    rippleScale,
+  ]);
 
   const handleStopScan = useCallback(async () => {
+    // Reset animations
+    Animated.parallel([
+      Animated.timing(titleOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(cardScale, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.spring(cardTranslateY, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rippleScale, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     await stopScan();
     setIsScanning(false);
-  }, [stopScan]);
+  }, [stopScan, titleOpacity, cardScale, cardTranslateY, rippleScale]);
 
   useEffect(() => {
     if (scannedCard) {
@@ -110,280 +285,508 @@ export default function ScanScreen() {
     };
   }, [stopScan]);
 
-  const textPrimary = isDark ? '#f5f0eb' : '#1a1510';
-  const textSecondary = isDark ? '#8a7e72' : '#7a6e62';
-
   return (
-    <LinearGradient
-      colors={isDark ? DARK_GRADIENT : LIGHT_GRADIENT}
-      locations={[0, 0.35, 0.65, 1]}
-      style={styles.flex}
-    >
+    <View style={styles.container}>
+      {/* Background gradients */}
+      <View style={styles.bgGradientTop} />
+      <View style={styles.bgGradientBottom} />
+
       <SafeAreaView style={styles.flex}>
+        <SparkleParticles
+          trigger={sparkle}
+          onComplete={handleSparkleComplete}
+        />
+
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={[styles.greeting, { color: textSecondary }]}>
-              Hello,
-            </Text>
-            <Text style={[styles.staffName, { color: textPrimary }]}>
-              {staff?.name || 'Staff'}
+            <Text style={styles.welcomeText}>Welcome,</Text>
+            <Text style={styles.welcomeNameItalic}>
+              {staff?.name || 'Manish Bhai'}
             </Text>
           </View>
 
-          <View style={styles.headerRight}>
-            {!isOnline && (
-              <View
-                style={[
-                  styles.statusPill,
-                  {
-                    backgroundColor: isDark
-                      ? 'rgba(217,119,6,0.15)'
-                      : 'rgba(217,119,6,0.10)',
-                  },
-                ]}
-              >
-                <WifiOff size={14} color="#d97706" strokeWidth={2} />
-              </View>
-            )}
-            {queueCount > 0 && (
-              <View
-                style={[
-                  styles.statusPill,
-                  {
-                    backgroundColor: isDark
-                      ? 'rgba(250,0,17,0.15)'
-                      : 'rgba(250,0,17,0.08)',
-                  },
-                ]}
-              >
-                <CloudUpload size={14} color="#FA0011" strokeWidth={2} />
-                <Text style={[styles.statusPillText, { color: '#FA0011' }]}>
-                  {queueCount}
-                </Text>
-              </View>
-            )}
+          <View style={styles.headerIcons}>
+            <TouchableOpacity
+              style={styles.searchButton}
+              onPress={() => navigation.navigate('Lookup')}
+              activeOpacity={0.7}
+            >
+              <Search size={20} color="#fff" strokeWidth={1.5} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => navigation.navigate('Settings')}
+              activeOpacity={0.7}
+            >
+              <Settings size={20} color="#fff" strokeWidth={1.5} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Center — Card + Scan */}
-        <View style={styles.centerArea}>
-          <View style={styles.cardWrapper}>
-            <SparkleParticles
-              trigger={sparkle}
-              onComplete={handleSparkleComplete}
-            />
-            <FloatingCard isScanning={isScanning} />
-          </View>
-
-          <PulsingText
-            text={
-              isScanning
-                ? t('scan.holdCardNearPhone')
-                : t('scan.clickStartToScan')
-            }
-            style={[
-              styles.hintText,
-              { color: textSecondary },
-              isScanning && styles.hintTextScanning,
-            ]}
-          />
-
-          <TouchableOpacity
-            onPress={isScanning ? handleStopScan : handleStartScan}
-            activeOpacity={0.85}
+        {/* Main content */}
+        <View style={styles.mainContent}>
+          {/* Title */}
+          <Animated.View
+            style={[styles.titleSection, { opacity: titleOpacity }]}
           >
-            <View style={styles.scanButtonOuter}>
+            <Text style={styles.mainTitle}>Sanderi</Text>
+            <Text style={styles.mainTitle}>loyalty</Text>
+          </Animated.View>
+
+          {/* Card area with ripples */}
+          <View style={styles.cardContainer}>
+            <RippleCircle delay={0} baseScale={rippleScale} />
+            <RippleCircle delay={1500} baseScale={rippleScale} />
+
+            {/* Glassmorphic Card */}
+            <Animated.View
+              style={[
+                styles.glassCard,
+                {
+                  transform: [
+                    { scale: cardScale },
+                    { translateY: cardTranslateY },
+                  ],
+                },
+              ]}
+            >
               <LinearGradient
-                colors={
-                  isScanning ? ['#dc2626', '#b91c1c'] : ['#FA0011', '#c5000d']
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.scanButton}
+                colors={['#121212', '#050505']}
+                style={styles.cardGradient}
               >
-                <Nfc size={22} color="#fff" strokeWidth={2} />
-                <Text style={styles.scanButtonText}>
-                  {isScanning ? t('scan.cancel') : t('scan.startScan')}
-                </Text>
+                {/* Card shine overlay */}
+                <LinearGradient
+                  colors={[
+                    'transparent',
+                    'rgba(255,255,255,0.05)',
+                    'transparent',
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.cardShine}
+                />
+
+                {/* Card header */}
+                <View style={styles.cardHeader}>
+                  <View style={styles.nfcIconContainer}>
+                    <Nfc size={16} color="#9ca3af" strokeWidth={1.5} />
+                  </View>
+                  <Text style={styles.credentialsLabel}>
+                    {isScanning ? 'SECURE_CHIP_V2' : 'CREDENTIALS'}
+                  </Text>
+                </View>
+
+                {/* Hexagon background */}
+                <View style={styles.hexagonContainer}>
+                  <View style={styles.hexagon} />
+                </View>
+
+                {/* Scanning line */}
+                <ScanningLine isVisible={isScanning} />
+
+                {/* Card footer */}
+                <View style={styles.cardFooter}>
+                  <View style={styles.statusBar} />
+                  <Text style={styles.statusText}>
+                    {isScanning ? 'READY TO RECEIVE' : 'READY TO SCAN'}
+                  </Text>
+                </View>
               </LinearGradient>
-            </View>
-          </TouchableOpacity>
+            </Animated.View>
+
+            {/* Floating action buttons - hide during scanning */}
+            {!isScanning && (
+              <>
+                <TouchableOpacity
+                  style={styles.floatingCheckButton}
+                  activeOpacity={0.8}
+                >
+                  <Check size={18} color="#10b981" strokeWidth={2} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.floatingAddButton}
+                  onPress={() => navigation.navigate('Enroll')}
+                  activeOpacity={0.8}
+                >
+                  <Plus size={16} color="#3b82f6" strokeWidth={2} />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+
+          {/* Scanning text - show when scanning */}
+          {isScanning && (
+            <Animated.View style={styles.scanningTextContainer}>
+              <Text style={styles.scanningTitle}>Searching for card...</Text>
+              <Text style={styles.scanningSubtitle}>
+                HOLD NEAR THE BACK OF DEVICE
+              </Text>
+            </Animated.View>
+          )}
         </View>
 
-        {/* Bottom Quick Actions */}
-        <View
-          style={[
-            styles.bottomBar,
-            {
-              backgroundColor: isDark
-                ? 'rgba(255,255,255,0.05)'
-                : 'rgba(0,0,0,0.04)',
-              borderColor: isDark
-                ? 'rgba(255,255,255,0.08)'
-                : 'rgba(0,0,0,0.06)',
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={[
-              styles.quickActionButton,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(255,255,255,0.06)'
-                  : 'rgba(0,0,0,0.04)',
-              },
-            ]}
-            onPress={() => navigation.navigate('Lookup')}
-            activeOpacity={0.7}
-          >
-            <Search
-              size={18}
-              color={isDark ? '#c0b8ae' : '#5a5048'}
-              strokeWidth={2}
-            />
-            <Text
-              style={[
-                styles.quickActionText,
-                { color: isDark ? '#c0b8ae' : '#5a5048' },
-              ]}
+        {/* Footer */}
+        <View style={styles.footer}>
+          {isScanning ? (
+            <>
+              <View style={styles.scanningButton}>
+                <Text style={styles.scanningButtonText}>SCANNING...</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleStopScan}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.cancelButtonText}>CANCEL SESSION</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.startButton}
+              onPress={handleStartScan}
+              activeOpacity={0.9}
             >
-              {t('tabs.lookup')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.quickActionButton,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(255,255,255,0.06)'
-                  : 'rgba(0,0,0,0.04)',
-              },
-            ]}
-            onPress={() => navigation.navigate('Settings')}
-            activeOpacity={0.7}
-          >
-            <Settings
-              size={18}
-              color={isDark ? '#c0b8ae' : '#5a5048'}
-              strokeWidth={2}
-            />
-            <Text
-              style={[
-                styles.quickActionText,
-                { color: isDark ? '#c0b8ae' : '#5a5048' },
-              ]}
-            >
-              {t('tabs.settings')}
-            </Text>
-          </TouchableOpacity>
+              <Text style={styles.startButtonText}>START SCAN</Text>
+              <View style={styles.startButtonArrow}>
+                <View style={styles.arrowLine} />
+                <ArrowRight size={18} color="#000" strokeWidth={2.5} />
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
-    </LinearGradient>
+
+      {/* Bottom gradient fade */}
+      <View style={styles.bottomGradientFade} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
   flex: {
     flex: 1,
+  },
+  bgGradientTop: {
+    position: 'absolute',
+    top: '-5%',
+    left: '-10%',
+    width: '60%',
+    height: '40%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 999,
+    transform: [{ scale: 1.5 }],
+    opacity: 0.3,
+  },
+  bgGradientBottom: {
+    position: 'absolute',
+    bottom: '0%',
+    right: '-10%',
+    width: '50%',
+    height: '50%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 999,
+    transform: [{ scale: 1.5 }],
+    opacity: 0.3,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 24,
-    paddingTop: 8,
+    paddingHorizontal: 28,
+    paddingTop: 16,
+    marginBottom: 32,
   },
-  greeting: {
-    fontSize: 14,
+  welcomeText: {
+    fontSize: 20,
     fontWeight: '400',
+    color: '#fff',
+    fontFamily: 'serif',
+    marginBottom: 2,
   },
-  staffName: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginTop: 2,
+  welcomeNameItalic: {
+    fontSize: 20,
+    fontStyle: 'italic',
+    fontWeight: '400',
+    color: '#fff',
+    fontFamily: 'serif',
   },
-  headerRight: {
+  headerIcons: {
     flexDirection: 'row',
+    gap: 12,
+  },
+  searchButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
-    gap: 8,
-    paddingTop: 4,
-  },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  statusPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  centerArea: {
-    flex: 1,
     justifyContent: 'center',
+  },
+  settingsButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    justifyContent: 'center',
   },
-  cardWrapper: {
-    marginBottom: 36,
+  mainContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
   },
-  hintText: {
-    fontSize: 15,
-    fontWeight: '500',
-    marginBottom: 28,
-    textAlign: 'center',
-  },
-  hintTextScanning: {
-    marginTop: 48,
+  titleSection: {
+    alignItems: 'center',
     marginBottom: 40,
   },
-  scanButtonOuter: {
-    borderRadius: 30,
-    shadowColor: '#FA0011',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    elevation: 12,
-  },
-  scanButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingHorizontal: 56,
-    paddingVertical: 18,
-    borderRadius: 30,
-  },
-  scanButtonText: {
+  mainTitle: {
+    fontSize: 34,
+    fontWeight: '700',
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 42,
+    fontFamily: 'serif',
   },
-  bottomBar: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingBottom: 32,
-    gap: 12,
-    borderTopWidth: 1,
-    borderRadius: 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  quickActionButton: {
-    flex: 1,
-    height: 50,
-    borderRadius: 14,
-    flexDirection: 'row',
-    justifyContent: 'center',
+  cardContainer: {
+    width: '100%',
+    height: 340,
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    position: 'relative',
   },
-  quickActionText: {
-    fontSize: 14,
+  rippleCircle: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  glassCard: {
+    width: 200,
+    height: 300,
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 60,
+    elevation: 18,
+    zIndex: 20,
+  },
+  cardGradient: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 28,
+    padding: 24,
+    justifyContent: 'space-between',
+  },
+  cardShine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  nfcIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  credentialsLabel: {
+    fontSize: 8,
+    letterSpacing: 1.8,
+    color: '#4b5563',
+    fontWeight: '500',
+  },
+  hexagonContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -60 }, { translateY: -60 }],
+    width: 120,
+    height: 120,
+    opacity: 0.05,
+  },
+  hexagon: {
+    width: 120,
+    height: 120,
+    backgroundColor: '#fff',
+    transform: [{ rotate: '0deg' }],
+  },
+  scanLine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    zIndex: 30,
+  },
+  scanLineGradient: {
+    flex: 1,
+  },
+  cardFooter: {
+    gap: 12,
+  },
+  statusBar: {
+    width: 48,
+    height: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 1,
+  },
+  statusText: {
+    fontSize: 9,
+    letterSpacing: 1.8,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  floatingCheckButton: {
+    position: 'absolute',
+    right: -6,
+    top: '28%',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+    zIndex: 30,
+  },
+  floatingAddButton: {
+    position: 'absolute',
+    left: -4,
+    bottom: '28%',
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+    zIndex: 30,
+  },
+  footer: {
+    paddingHorizontal: 28,
+    paddingBottom: 24,
+    marginTop: 40,
+    gap: 16,
+  },
+  startButton: {
+    backgroundColor: '#fff',
+    height: 56,
+    borderRadius: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 28,
+  },
+  startButtonText: {
+    fontSize: 13,
     fontWeight: '700',
+    color: '#000',
+    letterSpacing: 2.2,
+  },
+  scanningButton: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    height: 56,
+    borderRadius: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  scanningButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 2.2,
+  },
+  startButtonArrow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  arrowLine: {
+    width: 36,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  scanningTextContainer: {
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  scanningTitle: {
+    fontSize: 18,
+    fontStyle: 'italic',
+    color: '#fff',
+    fontFamily: 'serif',
+    marginBottom: 8,
+  },
+  scanningSubtitle: {
+    fontSize: 11,
+    letterSpacing: 2,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    height: 56,
+    borderRadius: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  cancelButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6b7280',
+    letterSpacing: 2.2,
+  },
+  bottomGradientFade: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 160,
+    backgroundColor: 'transparent',
   },
 });

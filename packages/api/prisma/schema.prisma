@@ -25,6 +25,7 @@ model Store {
   name                   String
   hardwareConversionRate Int      @default(100) // ₹X = 1 point
   plywoodConversionRate  Int      @default(100) // ₹X = 1 point
+  inviteCode             String   @unique @default("sanderi2026")
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
