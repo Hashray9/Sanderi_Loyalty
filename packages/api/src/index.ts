@@ -13,7 +13,7 @@ import { startExpiryJob } from './jobs/pointExpiry.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Middleware
 app.use(cors());
