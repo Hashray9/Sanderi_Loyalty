@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
     FadeIn,
@@ -21,9 +21,20 @@ interface TransactionDetail {
     newBalance: number;
 }
 
+export interface TransferDetail {
+    type: 'TRANSFER';
+    memberName: string;
+    oldCardUid: string;
+    newCardUid: string;
+    hardwarePoints: number;
+    plywoodPoints: number;
+}
+
+type OverlayDetail = TransactionDetail | TransferDetail;
+
 interface SuccessOverlayProps {
     visible: boolean;
-    transaction?: TransactionDetail;
+    transaction?: OverlayDetail;
     onDismiss: () => void;
 }
 
@@ -32,15 +43,17 @@ export function SuccessOverlay({ visible, transaction, onDismiss }: SuccessOverl
 
     useEffect(() => {
         if (visible) {
+            Keyboard.dismiss();
             HapticFeedback.trigger('notificationSuccess');
         }
     }, [visible]);
 
     if (!visible || !transaction) return null;
 
-    const isCredit = transaction.type === 'CREDIT';
-    const pointsColor = isCredit ? '#10b981' : '#ef4444';
-    const sign = isCredit ? '+' : '-';
+    const isTransfer = transaction.type === 'TRANSFER';
+    const isCredit = !isTransfer && transaction.type === 'CREDIT';
+    const pointsColor = isTransfer ? '#3b82f6' : isCredit ? '#10b981' : '#ef4444';
+    const sign = isTransfer ? '' : isCredit ? '+' : '-';
 
     return (
         <Animated.View
@@ -64,12 +77,22 @@ export function SuccessOverlay({ visible, transaction, onDismiss }: SuccessOverl
                     >
                         <ArrowLeft size={24} color="#fff" strokeWidth={1.5} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>{t('success.transactionStatus').toUpperCase()}</Text>
+                    <Text style={styles.headerTitle}>
+                        {isTransfer
+                            ? t('success.transferStatus').toUpperCase()
+                            : t('success.transactionStatus').toUpperCase()
+                        }
+                    </Text>
                     <View style={styles.headerSpacer} />
                 </View>
 
             {/* Main content */}
-            <View style={styles.mainContent}>
+            <ScrollView
+                style={styles.mainContent}
+                contentContainerStyle={styles.mainContentContainer}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+            >
                 {/* Success checkmark */}
                 <Animated.View
                     entering={ZoomIn.springify().stiffness(150).damping(15).delay(100)}
@@ -90,10 +113,13 @@ export function SuccessOverlay({ visible, transaction, onDismiss }: SuccessOverl
                     entering={SlideInDown.delay(200).springify()}
                     style={styles.successTitle}
                 >
-                    {t('success.transactionSuccessful')}
+                    {isTransfer
+                        ? t('enroll.transferSuccess')
+                        : t('success.transactionSuccessful')
+                    }
                 </Animated.Text>
 
-                {/* Transaction details card */}
+                {/* Details card */}
                 <Animated.View
                     entering={SlideInDown.delay(300).springify()}
                     style={styles.detailsCard}
@@ -102,45 +128,99 @@ export function SuccessOverlay({ visible, transaction, onDismiss }: SuccessOverl
                         colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.01)']}
                         style={styles.detailsGradient}
                     >
-                        {/* Transaction details header */}
+                        {/* Details header */}
                         <View style={styles.detailsHeader}>
-                            <Text style={styles.detailsHeaderText}>{t('success.transactionDetails').toUpperCase()}</Text>
-                        </View>
-
-                        {/* Points change */}
-                        <View style={styles.pointsSection}>
-                            <Text style={[styles.pointsValue, { color: pointsColor }]}>
-                                {sign}{transaction.points} PTS
-                            </Text>
-                            <Text style={styles.pointsLabel}>
-                                {isCredit ? t('success.creditedTo') : t('success.debitedFrom')} {transaction.category === 'HARDWARE' ? t('points.hardware') : t('points.plywood')}
+                            <Text style={styles.detailsHeaderText}>
+                                {isTransfer
+                                    ? t('success.transferDetails').toUpperCase()
+                                    : t('success.transactionDetails').toUpperCase()
+                                }
                             </Text>
                         </View>
 
-                        {/* Divider */}
-                        <View style={styles.divider} />
-
-                        {/* Transaction info */}
-                        <View style={styles.infoSection}>
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>{t('card.member').toUpperCase()}</Text>
-                                <Text style={styles.infoValue}>{transaction.memberName}</Text>
-                            </View>
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>{t('success.transactionId').toUpperCase()}</Text>
-                                <Text style={styles.infoValue}>#{transaction.transactionId}</Text>
-                            </View>
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>{t('success.newBalance').toUpperCase()}</Text>
-                                <View style={styles.balanceContainer}>
-                                    <Text style={styles.balanceValue}>{transaction.newBalance.toLocaleString()}</Text>
-                                    <Text style={styles.balanceUnit}>PTS</Text>
+                        {isTransfer ? (
+                            <>
+                                {/* Transfer points - two columns */}
+                                <View style={styles.transferPointsRow}>
+                                    <View style={styles.transferPointsCol}>
+                                        <Text style={styles.transferPointsLabel}>{t('points.hardware').toUpperCase()}</Text>
+                                        <Text style={[styles.transferPointsValue, { color: pointsColor }]}>
+                                            {transaction.hardwarePoints.toLocaleString()}
+                                        </Text>
+                                        <Text style={styles.transferPointsUnit}>PTS</Text>
+                                    </View>
+                                    <View style={styles.transferPointsDivider} />
+                                    <View style={styles.transferPointsCol}>
+                                        <Text style={styles.transferPointsLabel}>{t('points.plywood').toUpperCase()}</Text>
+                                        <Text style={[styles.transferPointsValue, { color: pointsColor }]}>
+                                            {transaction.plywoodPoints.toLocaleString()}
+                                        </Text>
+                                        <Text style={styles.transferPointsUnit}>PTS</Text>
+                                    </View>
                                 </View>
-                            </View>
-                        </View>
+                                <Text style={styles.transferredLabel}>{t('success.transferredTo')}</Text>
+
+                                {/* Divider */}
+                                <View style={styles.divider} />
+
+                                {/* Transfer info */}
+                                <View style={styles.infoSection}>
+                                    <View style={styles.infoRow}>
+                                        <Text style={styles.infoLabel}>{t('card.member').toUpperCase()}</Text>
+                                        <Text style={styles.infoValue}>{transaction.memberName}</Text>
+                                    </View>
+                                    <View style={styles.infoRow}>
+                                        <Text style={styles.infoLabel}>{t('success.oldCard').toUpperCase()}</Text>
+                                        <Text style={[styles.infoValue, styles.monoText]}>
+                                            {transaction.oldCardUid.slice(-8).toUpperCase()}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.infoRow}>
+                                        <Text style={styles.infoLabel}>{t('success.newCard').toUpperCase()}</Text>
+                                        <Text style={[styles.infoValue, styles.monoText]}>
+                                            {transaction.newCardUid.slice(-8).toUpperCase()}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </>
+                        ) : (
+                            <>
+                                {/* Points change */}
+                                <View style={styles.pointsSection}>
+                                    <Text style={[styles.pointsValue, { color: pointsColor }]}>
+                                        {sign}{transaction.points} PTS
+                                    </Text>
+                                    <Text style={styles.pointsLabel}>
+                                        {isCredit ? t('success.creditedTo') : t('success.debitedFrom')} {transaction.category === 'HARDWARE' ? t('points.hardware') : t('points.plywood')}
+                                    </Text>
+                                </View>
+
+                                {/* Divider */}
+                                <View style={styles.divider} />
+
+                                {/* Transaction info */}
+                                <View style={styles.infoSection}>
+                                    <View style={styles.infoRow}>
+                                        <Text style={styles.infoLabel}>{t('card.member').toUpperCase()}</Text>
+                                        <Text style={styles.infoValue}>{transaction.memberName}</Text>
+                                    </View>
+                                    <View style={styles.infoRow}>
+                                        <Text style={styles.infoLabel}>{t('success.transactionId').toUpperCase()}</Text>
+                                        <Text style={styles.infoValue}>#{transaction.transactionId}</Text>
+                                    </View>
+                                    <View style={styles.infoRow}>
+                                        <Text style={styles.infoLabel}>{t('success.newBalance').toUpperCase()}</Text>
+                                        <View style={styles.balanceContainer}>
+                                            <Text style={styles.balanceValue}>{transaction.newBalance.toLocaleString()}</Text>
+                                            <Text style={styles.balanceUnit}>PTS</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </>
+                        )}
                     </LinearGradient>
                 </Animated.View>
-            </View>
+            </ScrollView>
 
                 {/* Done button */}
                 <Animated.View
@@ -230,6 +310,8 @@ const styles = StyleSheet.create({
     },
     mainContent: {
         flex: 1,
+    },
+    mainContentContainer: {
         alignItems: 'center',
         paddingHorizontal: 28,
     },
@@ -359,6 +441,51 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#6b7280',
         textTransform: 'uppercase',
+    },
+    transferPointsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
+    },
+    transferPointsCol: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    transferPointsLabel: {
+        fontSize: 9,
+        fontWeight: '600',
+        color: '#6b7280',
+        letterSpacing: 2.4,
+        marginBottom: 8,
+    },
+    transferPointsValue: {
+        fontSize: 36,
+        fontWeight: '700',
+        fontFamily: 'serif',
+    },
+    transferPointsUnit: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#6b7280',
+        letterSpacing: 1,
+        marginTop: 4,
+    },
+    transferPointsDivider: {
+        width: 1,
+        height: 60,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    transferredLabel: {
+        fontSize: 14,
+        color: '#fff',
+        fontFamily: 'serif',
+        textAlign: 'center',
+        marginBottom: 32,
+    },
+    monoText: {
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
     },
     footer: {
         paddingHorizontal: 28,

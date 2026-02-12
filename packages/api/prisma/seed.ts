@@ -21,7 +21,7 @@ async function main() {
       name: 'Sanderi Main Store',
       hardwareConversionRate: 100, // ₹100 = 1 point
       plywoodConversionRate: 100,
-      inviteCode: 'sanderi2026',
+      inviteCode: 'sanderi1',
     },
   });
   console.log('Created store:', store.name);
@@ -127,10 +127,9 @@ async function main() {
           staffId: admin.id,
           category: 'HARDWARE',
           transactionType: 'CREDIT',
-          amount: testCard.hardwarePoints * 100, // Simulated ₹ amount
           pointsDelta: testCard.hardwarePoints,
           pointsRemaining: testCard.hardwarePoints,
-          expiresAt,
+          expiresAt: expiresAt,
         },
       });
     }
@@ -144,10 +143,9 @@ async function main() {
           staffId: admin.id,
           category: 'PLYWOOD',
           transactionType: 'CREDIT',
-          amount: testCard.plywoodPoints * 100, // Simulated ₹ amount
           pointsDelta: testCard.plywoodPoints,
           pointsRemaining: testCard.plywoodPoints,
-          expiresAt,
+          expiresAt: expiresAt,
         },
       });
     }

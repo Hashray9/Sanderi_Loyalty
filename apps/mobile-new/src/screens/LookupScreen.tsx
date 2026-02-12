@@ -14,9 +14,10 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
-import { ArrowLeft, Nfc, ArrowRight } from 'lucide-react-native';
+import { ArrowLeft, Nfc, ArrowRight, ShieldOff } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { api } from '@/lib/api';
+import { BlockConfirmDialog } from '@/components/BlockConfirmDialog';
 
 interface CustomerResult {
     cardUid: string;
@@ -51,6 +52,8 @@ export default function LookupScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<CustomerResult | null>(null);
     const [notFound, setNotFound] = useState(false);
+    const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+    const [isBlocking, setIsBlocking] = useState(false);
 
     const handleMobileChange = (text: string) => {
         const cleaned = text.replace(/\D/g, '');
@@ -93,9 +96,36 @@ export default function LookupScreen() {
         }
     };
 
+    const handleBlockCard = async () => {
+        if (!result) return;
+
+        setIsBlocking(true);
+        try {
+            await api.post(`/cards/${result.cardUid}/block`, {
+                reason: 'OTHER',
+            });
+
+            setShowBlockConfirm(false);
+            setResult({ ...result, cardStatus: 'BLOCKED' });
+            Alert.alert('Success', t('block.success'));
+        } catch (error: any) {
+            const message =
+                error?.response?.data?.error?.message ||
+                error?.response?.data?.message ||
+                error?.message ||
+                'Failed to block card';
+            Alert.alert(t('common.error'), message);
+        } finally {
+            setIsBlocking(false);
+        }
+    };
+
     const totalPoints = result ? result.hardwarePoints + result.plywoodPoints : 0;
     const tierName = totalPoints >= 10000 ? 'PLATINUM TIER' : totalPoints >= 5000 ? 'GOLD TIER' : 'SILVER TIER';
-    const statusText = result?.cardStatus === 'ACTIVE' ? 'Active' : result?.cardStatus || '';
+    const statusText = result?.cardStatus === 'ACTIVE' ? 'Active'
+        : result?.cardStatus === 'BLOCKED' ? 'Blocked'
+        : result?.cardStatus === 'TRANSFERRED' ? 'Transferred'
+        : result?.cardStatus || '';
 
     return (
         <View style={styles.container}>
@@ -175,7 +205,10 @@ export default function LookupScreen() {
                                     <View style={styles.cardHeader}>
                                         <View>
                                             <Text style={styles.statusLabel}>Status</Text>
-                                            <Text style={styles.statusValue}>{statusText}</Text>
+                                            <Text style={[
+                                                styles.statusValue,
+                                                result.cardStatus !== 'ACTIVE' && styles.statusValueInactive,
+                                            ]}>{statusText}</Text>
                                         </View>
                                         <View style={styles.nfcIconContainer}>
                                             <Nfc size={12} color="#9ca3af" strokeWidth={1.5} />
@@ -223,28 +256,58 @@ export default function LookupScreen() {
                         )}
                     </View>
 
-                    {/* Make Transaction Button */}
+                    {/* Action Buttons */}
                     {result && (
                         <Animated.View
                             entering={FadeInDown.springify().damping(20).stiffness(200).delay(100)}
                             exiting={FadeOutDown}
                             style={styles.bottomAction}
                         >
-                            <TouchableOpacity
-                                style={styles.transactionButton}
-                                onPress={handleViewCard}
-                                activeOpacity={0.9}
-                            >
-                                <Text style={styles.transactionButtonText}>Make Transactions</Text>
-                                <View style={styles.transactionButtonArrow}>
-                                    <View style={styles.arrowLine} />
-                                    <ArrowRight size={18} color="#000" strokeWidth={2.5} />
+                            {result.cardStatus === 'ACTIVE' && (
+                                <TouchableOpacity
+                                    style={styles.transactionButton}
+                                    onPress={handleViewCard}
+                                    activeOpacity={0.9}
+                                >
+                                    <Text style={styles.transactionButtonText}>Make Transactions</Text>
+                                    <View style={styles.transactionButtonArrow}>
+                                        <View style={styles.arrowLine} />
+                                        <ArrowRight size={18} color="#000" strokeWidth={2.5} />
+                                    </View>
+                                </TouchableOpacity>
+                            )}
+
+                            {result.cardStatus === 'ACTIVE' && (
+                                <TouchableOpacity
+                                    style={styles.blockButton}
+                                    onPress={() => setShowBlockConfirm(true)}
+                                    activeOpacity={0.8}
+                                >
+                                    <ShieldOff size={16} color="#ef4444" strokeWidth={2} />
+                                    <Text style={styles.blockButtonText}>{t('block.warningTitle').toUpperCase()}</Text>
+                                </TouchableOpacity>
+                            )}
+
+                            {(result.cardStatus === 'BLOCKED' || result.cardStatus === 'TRANSFERRED') && (
+                                <View style={styles.blockedBanner}>
+                                    <ShieldOff size={16} color="#6b7280" strokeWidth={1.5} />
+                                    <Text style={styles.blockedBannerText}>
+                                        {result.cardStatus === 'TRANSFERRED' ? 'CARD TRANSFERRED' : 'CARD BLOCKED'}
+                                    </Text>
                                 </View>
-                            </TouchableOpacity>
+                            )}
                         </Animated.View>
                     )}
                 </ScrollView>
             </SafeAreaView>
+
+            {/* Block confirmation dialog */}
+            <BlockConfirmDialog
+                visible={showBlockConfirm}
+                onConfirm={handleBlockCard}
+                onCancel={() => setShowBlockConfirm(false)}
+                isLoading={isBlocking}
+            />
 
             {/* Bottom gradient fade */}
             <View style={styles.bottomGradientFade} />
@@ -407,6 +470,9 @@ const styles = StyleSheet.create({
         color: '#10b981',
         fontWeight: '600',
     },
+    statusValueInactive: {
+        color: '#ef4444',
+    },
     nfcIconContainer: {
         width: 32,
         height: 32,
@@ -485,6 +551,7 @@ const styles = StyleSheet.create({
     },
     bottomAction: {
         marginTop: 32,
+        gap: 16,
     },
     transactionButton: {
         backgroundColor: '#fff',
@@ -511,6 +578,40 @@ const styles = StyleSheet.create({
         width: 32,
         height: 1,
         backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    blockButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        height: 52,
+        borderRadius: 0,
+        borderWidth: 1,
+        borderColor: 'rgba(239,68,68,0.3)',
+        backgroundColor: 'rgba(239,68,68,0.05)',
+    },
+    blockButtonText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#ef4444',
+        letterSpacing: 4,
+    },
+    blockedBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        height: 52,
+        borderRadius: 0,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+    },
+    blockedBannerText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#6b7280',
+        letterSpacing: 4,
     },
     bottomGradientFade: {
         position: 'absolute',

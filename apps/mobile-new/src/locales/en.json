@@ -148,7 +148,11 @@
     "searchCustomer": "Search by mobile number",
     "transferConfirm": "All points will be transferred to the new card. The old card will be blocked.",
     "transferAndAssign": "Transfer & Assign",
-    "transferSuccess": "Card transferred successfully"
+    "transferSuccess": "Card transferred successfully",
+    "newMember": "New Member",
+    "transferCard": "Transfer Card",
+    "searchMember": "Search Member",
+    "requiresInternet": "Transfer requires an internet connection"
   },
   "block": {
     "warningTitle": "Block Card",
@@ -226,6 +230,12 @@
     "creditedTo": "credited to",
     "debitedFrom": "debited from",
     "transactionId": "Transaction ID",
-    "newBalance": "New Balance"
+    "newBalance": "New Balance",
+    "transferSuccessful": "Transfer Successful",
+    "transferStatus": "Transfer Status",
+    "transferDetails": "Transfer Details",
+    "transferredTo": "transferred to new card",
+    "oldCard": "Old Card",
+    "newCard": "New Card"
   }
 }

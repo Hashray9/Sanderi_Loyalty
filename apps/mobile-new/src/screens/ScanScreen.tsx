@@ -439,7 +439,7 @@ export default function ScanScreen() {
                 onPress={handleStopScan}
                 activeOpacity={0.9}
               >
-                <Text style={styles.cancelButtonText}>CANCEL SESSION</Text>
+                <Text style={styles.cancelButtonText}>CANCEL</Text>
               </TouchableOpacity>
             </>
           ) : (

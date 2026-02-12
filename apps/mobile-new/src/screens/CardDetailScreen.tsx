@@ -8,13 +8,14 @@ import {
     ActivityIndicator,
     Alert,
     TextInput,
+    Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
-import { ArrowLeft, User, Wrench, Layers, PlusCircle, MinusCircle, Zap, Clock } from 'lucide-react-native';
+import { ArrowLeft, User, Wrench, Layers, PlusCircle, MinusCircle, Zap, Clock, ShieldOff } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -25,7 +26,7 @@ import { Toast } from '@/components/Toast';
 
 interface CardData {
     cardUid: string;
-    status: 'UNASSIGNED' | 'ACTIVE' | 'BLOCKED';
+    status: 'UNASSIGNED' | 'ACTIVE' | 'BLOCKED' | 'TRANSFERRED';
     hardwarePoints: number;
     plywoodPoints: number;
     holder: {
@@ -206,6 +207,9 @@ export default function CardDetailScreen() {
             const newBalance = transactionType === 'CREDIT' ? currentBalance + points : currentBalance - points;
 
             // Set transaction detail for success overlay
+            // Dismiss keyboard before showing success overlay to prevent layout issues
+            Keyboard.dismiss();
+
             setTransactionDetail({
                 type: transactionType,
                 category: selectedCategory,
@@ -300,6 +304,26 @@ export default function CardDetailScreen() {
                                     </TouchableOpacity>
                                 </View>
                             </LinearGradient>
+                        </View>
+                    )}
+
+                    {/* Blocked / Transferred Banner */}
+                    {!isActive && (card.status === 'BLOCKED' || card.status === 'TRANSFERRED') && (
+                        <View style={styles.statusBanner}>
+                            <ShieldOff size={18} color={card.status === 'TRANSFERRED' ? '#f59e0b' : '#ef4444'} strokeWidth={1.5} />
+                            <View>
+                                <Text style={[
+                                    styles.statusBannerTitle,
+                                    { color: card.status === 'TRANSFERRED' ? '#f59e0b' : '#ef4444' },
+                                ]}>
+                                    {card.status === 'TRANSFERRED' ? 'CARD TRANSFERRED' : 'CARD BLOCKED'}
+                                </Text>
+                                <Text style={styles.statusBannerSubtitle}>
+                                    {card.status === 'TRANSFERRED'
+                                        ? 'This card has been transferred to a new card'
+                                        : 'This card has been blocked. No transactions allowed.'}
+                                </Text>
+                            </View>
                         </View>
                     )}
 
@@ -855,5 +879,28 @@ const styles = StyleSheet.create({
         color: '#000',
         letterSpacing: 4,
         textTransform: 'uppercase',
+    },
+    statusBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        marginBottom: 32,
+        paddingVertical: 20,
+        paddingHorizontal: 20,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+    },
+    statusBannerTitle: {
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 3.2,
+        marginBottom: 4,
+    },
+    statusBannerSubtitle: {
+        fontSize: 12,
+        color: '#6b7280',
+        lineHeight: 18,
     },
 });

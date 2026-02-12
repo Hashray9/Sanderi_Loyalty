@@ -382,7 +382,7 @@ export async function transferPoints(
       data: {
         hardwarePoints: 0,
         plywoodPoints: 0,
-        status: 'BLOCKED',
+        status: 'TRANSFERRED',
       },
     });
   });

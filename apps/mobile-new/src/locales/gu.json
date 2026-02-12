@@ -148,7 +148,11 @@
     "searchCustomer": "મોબાઇલ નંબરથી શોધો",
     "transferConfirm": "બધા પોઈન્ટ્સ નવા કાર્ડમાં ટ્રાન્સફર થશે. જૂનું કાર્ડ બ્લોક થશે.",
     "transferAndAssign": "ટ્રાન્સફર અને સોંપો",
-    "transferSuccess": "કાર્ડ સફળતાપૂર્વક ટ્રાન્સફર થયું"
+    "transferSuccess": "કાર્ડ સફળતાપૂર્વક ટ્રાન્સફર થયું",
+    "newMember": "નવો સભ્ય",
+    "transferCard": "કાર્ડ ટ્રાન્સફર",
+    "searchMember": "સભ્ય શોધો",
+    "requiresInternet": "ટ્રાન્સફર માટે ઈન્ટરનેટ જરૂરી છે"
   },
   "block": {
     "warningTitle": "કાર્ડ બ્લોક કરો",
@@ -225,6 +229,12 @@
     "creditedTo": "ક્રેડિટ થયા",
     "debitedFrom": "ડેબિટ થયા",
     "transactionId": "વ્યવહાર ID",
-    "newBalance": "નવી બેલેન્સ"
+    "newBalance": "નવી બેલેન્સ",
+    "transferSuccessful": "ટ્રાન્સફર સફળ",
+    "transferStatus": "ટ્રાન્સફર સ્થિતિ",
+    "transferDetails": "ટ્રાન્સફર વિગતો",
+    "transferredTo": "નવા કાર્ડમાં ટ્રાન્સફર થયા",
+    "oldCard": "જૂનું કાર્ડ",
+    "newCard": "નવું કાર્ડ"
   }
 }

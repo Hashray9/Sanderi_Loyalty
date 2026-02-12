@@ -87,6 +87,7 @@ enum CardStatus {
   UNASSIGNED
   ACTIVE
   BLOCKED
+  TRANSFERRED
 }
 
 model CardHolder {
