@@ -99,6 +99,20 @@ syncRouter.post('/offline-actions', validate(syncSchema), async (req, res, next)
 
         switch (action.actionType) {
           case 'ENROLL': {
+            const existingAadhaar = await prisma.cardHolder.findUnique({
+              where: { aadhaarNumber: action.customerAadhaar },
+            });
+
+            if (existingAadhaar) {
+              results.push({
+                entryId: action.entryId,
+                success: false,
+                error: 'Aadhaar number already registered',
+                code: 'AADHAAR_ALREADY_REGISTERED',
+              });
+              continue;
+            }
+
             const existingHolder = await prisma.cardHolder.findUnique({
               where: { mobileNumber: action.customerMobile },
             });
@@ -139,6 +153,7 @@ syncRouter.post('/offline-actions', validate(syncSchema), async (req, res, next)
                 data: {
                   cardUid: action.cardUid,
                   name: action.customerName,
+                  aadhaarNumber: action.customerAadhaar,
                   mobileNumber: action.customerMobile,
                 },
               });

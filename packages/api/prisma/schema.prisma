@@ -77,7 +77,6 @@ model Card {
   issuedBy      Staff?         @relation("IssuedBy", fields: [issuedById], references: [id])
   cardHolder    CardHolder?
   pointEntries  PointEntry[]
-  mobileLookups MobileLookup[]
 
   @@index([franchiseeId])
   @@index([status])
@@ -91,16 +90,18 @@ enum CardStatus {
 }
 
 model CardHolder {
-  id           String   @id @default(cuid())
-  cardUid      String   @unique
-  name         String
-  mobileNumber String   @unique // Unique per card
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  cardUid       String   @unique
+  name          String
+  aadhaarNumber String   @unique
+  mobileNumber  String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   card Card @relation(fields: [cardUid], references: [cardUid])
 
   @@index([mobileNumber])
+  @@index([aadhaarNumber])
 }
 
 model CardBlock {
@@ -158,20 +159,6 @@ enum TransactionType {
   EXPIRY // Created by batch job
   VOID // Reversal entry
   TRANSFER // For card reissue
-}
-
-// ============== MOBILE LOOKUP TRACKING ==============
-
-model MobileLookup {
-  id        String   @id @default(cuid())
-  cardUid   String
-  staffId   String
-  month     Int // YYYYMM format (e.g., 202602)
-  createdAt DateTime @default(now())
-
-  card Card @relation(fields: [cardUid], references: [cardUid])
-
-  @@index([cardUid, month])
 }
 
 // ============== OFFLINE SYNC ==============

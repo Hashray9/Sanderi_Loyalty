@@ -66,13 +66,14 @@ const enrollSchema = z.object({
   body: z.object({
     cardUid: z.string().min(1),
     customerName: z.string().min(1),
+    customerAadhaar: z.string().length(12, 'Aadhaar number must be 12 digits'),
     customerMobile: z.string().min(10).max(15),
   }),
 });
 
 cardsRouter.post('/enroll', validate(enrollSchema), async (req, res, next) => {
   try {
-    const { cardUid, customerName, customerMobile } = req.body;
+    const { cardUid, customerName, customerAadhaar, customerMobile } = req.body;
     const { staffId, franchiseeId } = req.auth!;
 
     // Check if card exists
@@ -87,6 +88,15 @@ cardsRouter.post('/enroll', validate(enrollSchema), async (req, res, next) => {
       if (card.franchiseeId !== franchiseeId) {
         throw new AppError(403, 'Card belongs to different franchisee', 'FRANCHISE_MISMATCH');
       }
+    }
+
+    // Check if Aadhaar number already has a card
+    const existingAadhaar = await prisma.cardHolder.findUnique({
+      where: { aadhaarNumber: customerAadhaar },
+    });
+
+    if (existingAadhaar) {
+      throw new AppError(400, 'Aadhaar number already registered to another card', 'AADHAAR_ALREADY_REGISTERED');
     }
 
     // Check if mobile number already has a card
@@ -125,6 +135,7 @@ cardsRouter.post('/enroll', validate(enrollSchema), async (req, res, next) => {
         data: {
           cardUid,
           name: customerName,
+          aadhaarNumber: customerAadhaar,
           mobileNumber: customerMobile,
         },
       });
@@ -135,6 +146,7 @@ cardsRouter.post('/enroll', validate(enrollSchema), async (req, res, next) => {
       status: CardStatus.ACTIVE,
       holder: {
         name: customerName,
+        aadhaarNumber: customerAadhaar,
         mobileNumber: customerMobile,
       },
     });

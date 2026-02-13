@@ -35,8 +35,18 @@ import {
 } from '@/components/SuccessOverlay';
 import { v4 as uuidv4 } from 'uuid';
 
+const formatAadhaarInput = (value: string): string => {
+  const cleaned = value.replace(/\D/g, '');
+  if (cleaned.length <= 4) return cleaned;
+  if (cleaned.length <= 8) return `${cleaned.slice(0, 4)} ${cleaned.slice(4)}`;
+  return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 8)} ${cleaned.slice(8, 12)}`;
+};
+
 const enrollSchema = z.object({
   customerName: z.string().min(2, 'Name must be at least 2 characters'),
+  customerAadhaar: z
+    .string()
+    .min(12, 'Aadhaar number must be 12 digits'),
   customerMobile: z
     .string()
     .min(10, 'Mobile number must be at least 10 digits'),
@@ -98,6 +108,7 @@ export default function EnrollScreen() {
     resolver: zodResolver(enrollSchema),
     defaultValues: {
       customerName: '',
+      customerAadhaar: '',
       customerMobile: '',
     },
   });
@@ -197,6 +208,7 @@ export default function EnrollScreen() {
         payload: {
           cardUid: cardUid!,
           customerName: data.customerName,
+          customerAadhaar: data.customerAadhaar.replace(/\D/g, ''),
           customerMobile: data.customerMobile.replace(/\D/g, ''),
         },
       });
@@ -362,6 +374,44 @@ export default function EnrollScreen() {
                     {errors.customerName && (
                       <Text style={styles.errorText}>
                         {errors.customerName.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="customerAadhaar"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>AADHAAR NUMBER</Text>
+                    <View
+                      style={[
+                        styles.inputWrapper,
+                        errors.customerAadhaar && styles.inputWrapperError,
+                      ]}
+                    >
+                      <TextInput
+                        style={[styles.input, styles.inputAadhaar]}
+                        placeholder="0000 0000 0000"
+                        placeholderTextColor="rgba(255,255,255,0.1)"
+                        keyboardType="number-pad"
+                        onBlur={onBlur}
+                        onChangeText={text => {
+                          const cleaned = text.replace(/\D/g, '');
+                          if (cleaned.length <= 12) {
+                            onChange(formatAadhaarInput(cleaned));
+                          }
+                        }}
+                        value={value}
+                        editable={!isLoading}
+                        maxLength={14}
+                      />
+                    </View>
+                    {errors.customerAadhaar && (
+                      <Text style={styles.errorText}>
+                        {errors.customerAadhaar.message}
                       </Text>
                     )}
                   </View>
@@ -836,6 +886,11 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     paddingVertical: 16,
     paddingHorizontal: 0,
+  },
+  inputAadhaar: {
+    fontSize: 22,
+    fontFamily: 'monospace',
+    letterSpacing: 6,
   },
   inputPhone: {
     fontSize: 24,

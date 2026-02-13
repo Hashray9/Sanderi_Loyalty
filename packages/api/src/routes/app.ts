@@ -23,7 +23,6 @@ appRouter.get('/config', (_req, res) => {
   res.json({
     maxOfflineQueue: parseInt(process.env.MAX_OFFLINE_QUEUE || '50', 10),
     maxOfflineDays: 2,
-    mobileLookupsPerMonth: parseInt(process.env.MOBILE_LOOKUPS_PER_MONTH || '2', 10),
     voidWindowDays: parseInt(process.env.VOID_WINDOW_DAYS || '7', 10),
     pointExpiryMonths: parseInt(process.env.POINT_EXPIRY_MONTHS || '12', 10),
   });
