@@ -36,7 +36,7 @@ app.use('/app', appRouter);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '::', () => {
   console.log(`Server running on port ${PORT}`);
 
   // Start scheduled jobs
