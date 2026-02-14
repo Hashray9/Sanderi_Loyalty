@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UserPlus, ArrowRight } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
 const signupSchema = z
@@ -41,9 +42,207 @@ const formatPhoneInput = (value: string): string => {
   return `${cleaned.slice(0, 5)} ${cleaned.slice(5, 10)}`;
 };
 
+// ─── Theme-derived styles ────────────────────────────────────────────────────
+
+type Theme = ReturnType<typeof useTheme>;
+
+const createStyles = (
+  colors: Theme['colors'],
+  typo: Theme['typography'],
+  sp: Theme['spacing'],
+  radius: Theme['borderRadius'],
+  btn: Theme['buttons'],
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    safeArea: {
+      flex: 1,
+    },
+    flex: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingBottom: sp['5xl'],
+    },
+    bgGradientTop: {
+      position: 'absolute',
+      top: '-10%',
+      left: '-20%',
+      width: '80%',
+      height: '50%',
+      backgroundColor: colors.surface1,
+      borderRadius: radius.full,
+      opacity: 1,
+    },
+    bgGradientBottom: {
+      position: 'absolute',
+      bottom: '-10%',
+      right: '-20%',
+      width: '80%',
+      height: '50%',
+      backgroundColor: colors.surface1,
+      borderRadius: radius.full,
+      opacity: 1,
+    },
+    header: {
+      alignItems: 'center',
+      paddingTop: sp['6xl'],
+      marginBottom: sp['5xl'],
+    },
+    iconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: colors.borderProminent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: sp.lg,
+    },
+    headerTitle: {
+      fontSize: typo.fontSize.sm,
+      fontWeight: typo.fontWeight.medium,
+      color: colors.textHigh,
+      letterSpacing: typo.letterSpacing.subtitle,
+      textTransform: 'uppercase',
+    },
+    formSection: {
+      paddingHorizontal: sp['3xl'],
+      gap: sp['3xl'],
+      marginBottom: sp['6xl'],
+    },
+    inputGroup: {
+      gap: sp.xs,
+    },
+    inputLabel: {
+      fontSize: typo.fontSize.xs,
+      fontWeight: typo.fontWeight.bold,
+      color: colors.textSecondary,
+      letterSpacing: typo.letterSpacing.button,
+      textTransform: 'uppercase',
+      marginBottom: sp.xs,
+      marginLeft: sp.xs,
+    },
+    input: {
+      backgroundColor: 'transparent',
+      borderTopWidth: 0,
+      borderLeftWidth: 0,
+      borderRightWidth: 0,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderProminent,
+      color: colors.text,
+      fontSize: typo.fontSize['3xl'],
+      fontWeight: typo.fontWeight.light,
+      fontFamily: typo.fontFamily.serif,
+      letterSpacing: 4,
+      paddingVertical: sp.md,
+      paddingHorizontal: 0,
+    },
+    mobileInput: {
+      backgroundColor: 'transparent',
+      borderTopWidth: 0,
+      borderLeftWidth: 0,
+      borderRightWidth: 0,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderProminent,
+      color: colors.text,
+      fontSize: typo.fontSize['3xl'],
+      fontFamily: typo.fontFamily.serif,
+      letterSpacing: typo.letterSpacing.phone,
+      paddingVertical: sp.md,
+      paddingHorizontal: 0,
+    },
+    inputError: {
+      borderBottomColor: colors.error,
+    },
+    errorText: {
+      fontSize: typo.fontSize.label,
+      color: colors.error,
+      marginTop: 6,
+      marginLeft: sp.xs,
+    },
+    buttonSection: {
+      paddingHorizontal: sp['3xl'],
+      marginBottom: sp['4xl'],
+    },
+    signupButton: {
+      backgroundColor: colors.buttonPrimary,
+      height: btn.primaryHeight,
+      borderRadius: btn.primaryBorderRadius,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: sp['3xl'],
+    },
+    signupButtonText: {
+      fontSize: typo.fontSize.label,
+      fontWeight: typo.fontWeight.bold,
+      color: colors.buttonPrimaryText,
+      letterSpacing: 4,
+      textTransform: 'uppercase',
+    },
+    buttonArrow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: sp.md,
+    },
+    arrowLine: {
+      width: 32,
+      height: 1,
+      backgroundColor: colors.buttonArrowLine,
+    },
+    loginSection: {
+      alignItems: 'center',
+      marginBottom: sp['2xl'],
+    },
+    loginLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: sp.sm,
+    },
+    loginLinkLabel: {
+      fontSize: typo.fontSize.sm,
+      fontWeight: typo.fontWeight.normal,
+      color: colors.textLow,
+      letterSpacing: 2.5,
+    },
+    loginLinkText: {
+      fontSize: typo.fontSize.sm,
+      fontWeight: typo.fontWeight.bold,
+      color: colors.text,
+      letterSpacing: 2.5,
+      textDecorationLine: 'underline',
+    },
+    bottomGradientFade: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 128,
+      backgroundColor: 'transparent',
+      pointerEvents: 'none',
+    },
+  });
+
+function useStyles() {
+  const { colors, typography, spacing, borderRadius, buttons } = useTheme();
+  return useMemo(
+    () => createStyles(colors, typography, spacing, borderRadius, buttons),
+    [colors, typography, spacing, borderRadius, buttons],
+  );
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export default function SignupScreen() {
   const navigation = useNavigation<any>();
   const { signup } = useAuth();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -92,7 +291,7 @@ export default function SignupScreen() {
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.iconContainer}>
-                <UserPlus size={24} color="#fff" strokeWidth={1.2} />
+                <UserPlus size={24} color={colors.text} strokeWidth={1.2} />
               </View>
               <Text style={styles.headerTitle}>CREATE ACCOUNT</Text>
             </View>
@@ -108,7 +307,7 @@ export default function SignupScreen() {
                     <TextInput
                       style={[styles.input, errors.name && styles.inputError]}
                       placeholder="JOHN DOE"
-                      placeholderTextColor="rgba(255,255,255,0.08)"
+                      placeholderTextColor={colors.placeholderFaint}
                       autoCapitalize="words"
                       onBlur={onBlur}
                       onChangeText={onChange}
@@ -131,7 +330,7 @@ export default function SignupScreen() {
                     <TextInput
                       style={[styles.mobileInput, errors.mobileNumber && styles.inputError]}
                       placeholder="00000 00000"
-                      placeholderTextColor="rgba(255,255,255,0.08)"
+                      placeholderTextColor={colors.placeholderFaint}
                       keyboardType="phone-pad"
                       onBlur={onBlur}
                       onChangeText={(text) => {
@@ -160,7 +359,7 @@ export default function SignupScreen() {
                     <TextInput
                       style={[styles.input, errors.password && styles.inputError]}
                       placeholder="••••••••"
-                      placeholderTextColor="rgba(255,255,255,0.08)"
+                      placeholderTextColor={colors.placeholderFaint}
                       secureTextEntry
                       onBlur={onBlur}
                       onChangeText={onChange}
@@ -183,7 +382,7 @@ export default function SignupScreen() {
                     <TextInput
                       style={[styles.input, errors.confirmPassword && styles.inputError]}
                       placeholder="••••••••"
-                      placeholderTextColor="rgba(255,255,255,0.08)"
+                      placeholderTextColor={colors.placeholderFaint}
                       secureTextEntry
                       onBlur={onBlur}
                       onChangeText={onChange}
@@ -206,7 +405,7 @@ export default function SignupScreen() {
                     <TextInput
                       style={[styles.input, errors.inviteCode && styles.inputError]}
                       placeholder="STF-0000"
-                      placeholderTextColor="rgba(255,255,255,0.08)"
+                      placeholderTextColor={colors.placeholderFaint}
                       autoCapitalize="characters"
                       onBlur={onBlur}
                       onChangeText={onChange}
@@ -230,13 +429,13 @@ export default function SignupScreen() {
                 activeOpacity={0.9}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#000" />
+                  <ActivityIndicator color={colors.buttonPrimaryText} />
                 ) : (
                   <>
                     <Text style={styles.signupButtonText}>SIGN UP</Text>
                     <View style={styles.buttonArrow}>
                       <View style={styles.arrowLine} />
-                      <ArrowRight size={18} color="#000" strokeWidth={2.5} />
+                      <ArrowRight size={18} color={colors.buttonPrimaryText} strokeWidth={2.5} />
                     </View>
                   </>
                 )}
@@ -263,178 +462,3 @@ export default function SignupScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  safeArea: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 40,
-  },
-  bgGradientTop: {
-    position: 'absolute',
-    top: '-10%',
-    left: '-20%',
-    width: '80%',
-    height: '50%',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 999,
-    opacity: 1,
-  },
-  bgGradientBottom: {
-    position: 'absolute',
-    bottom: '-10%',
-    right: '-20%',
-    width: '80%',
-    height: '50%',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 999,
-    opacity: 1,
-  },
-  header: {
-    alignItems: 'center',
-    paddingTop: 48,
-    marginBottom: 40,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.9)',
-    letterSpacing: 6.4,
-    textTransform: 'uppercase',
-  },
-  formSection: {
-    paddingHorizontal: 28,
-    gap: 28,
-    marginBottom: 48,
-  },
-  inputGroup: {
-    gap: 4,
-  },
-  inputLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#6b7280',
-    letterSpacing: 3.2,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-    marginLeft: 4,
-  },
-  input: {
-    backgroundColor: 'transparent',
-    borderTopWidth: 0,
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '300',
-    fontFamily: 'serif',
-    letterSpacing: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 0,
-  },
-  mobileInput: {
-    backgroundColor: 'transparent',
-    borderTopWidth: 0,
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
-    color: '#fff',
-    fontSize: 20,
-    fontFamily: 'serif',
-    letterSpacing: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 0,
-  },
-  inputError: {
-    borderBottomColor: '#ef4444',
-  },
-  errorText: {
-    fontSize: 11,
-    color: '#ef4444',
-    marginTop: 6,
-    marginLeft: 4,
-  },
-  buttonSection: {
-    paddingHorizontal: 28,
-    marginBottom: 32,
-  },
-  signupButton: {
-    backgroundColor: '#fff',
-    height: 56,
-    borderRadius: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 28,
-  },
-  signupButtonText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#000',
-    letterSpacing: 4,
-    textTransform: 'uppercase',
-  },
-  buttonArrow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  arrowLine: {
-    width: 32,
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  loginSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  loginLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  loginLinkLabel: {
-    fontSize: 10,
-    fontWeight: '400',
-    color: 'rgba(255,255,255,0.4)',
-    letterSpacing: 2.5,
-  },
-  loginLinkText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: 2.5,
-    textDecorationLine: 'underline',
-  },
-  bottomGradientFade: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 128,
-    backgroundColor: 'transparent',
-    pointerEvents: 'none',
-  },
-});

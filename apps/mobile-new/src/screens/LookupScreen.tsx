@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     View,
     Text,
@@ -28,7 +28,6 @@ interface CustomerResult {
     plywoodPoints: number;
 }
 
-// Helper function to format phone number for display (masked)
 const formatPhoneNumber = (phone: string): string => {
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned.length === 10) {
@@ -37,17 +36,346 @@ const formatPhoneNumber = (phone: string): string => {
     return phone;
 };
 
-// Helper function to format input as user types (10 digits with spaces - 5 5 format)
 const formatPhoneInput = (value: string): string => {
     const cleaned = value.replace(/\D/g, '');
     if (cleaned.length <= 5) return cleaned;
     return `${cleaned.slice(0, 5)} ${cleaned.slice(5, 10)}`;
 };
 
+// ─── Theme-derived styles ────────────────────────────────────────────────────
+
+type Theme = ReturnType<typeof useTheme>;
+
+const createStyles = (
+    colors: Theme['colors'],
+    typo: Theme['typography'],
+    sp: Theme['spacing'],
+    radius: Theme['borderRadius'],
+    btn: Theme['buttons'],
+) =>
+    StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        flex: {
+            flex: 1,
+        },
+        bgGradientTop: {
+            position: 'absolute',
+            top: '-5%',
+            left: '-20%',
+            width: '80%',
+            height: '50%',
+            backgroundColor: colors.surface1,
+            borderRadius: radius.full,
+            transform: [{ scale: 1.5 }],
+            opacity: 0.3,
+        },
+        bgGradientBottom: {
+            position: 'absolute',
+            bottom: '-10%',
+            right: '-20%',
+            width: '80%',
+            height: '50%',
+            backgroundColor: colors.surface1,
+            borderRadius: radius.full,
+            transform: [{ scale: 1.5 }],
+            opacity: 0.3,
+        },
+        scrollContent: {
+            paddingHorizontal: sp['3xl'],
+            paddingTop: 0,
+            paddingBottom: 100,
+        },
+        header: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: sp.lg,
+            marginBottom: sp['5xl'],
+        },
+        backButton: {
+            width: 40,
+            height: 40,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginLeft: -8,
+        },
+        headerTitle: {
+            fontSize: typo.fontSize.label,
+            fontWeight: typo.fontWeight.medium,
+            color: colors.textHigh,
+            letterSpacing: typo.letterSpacing.heading,
+            textAlign: 'center',
+            textTransform: 'uppercase',
+        },
+        headerSpacer: {
+            width: 40,
+        },
+        searchSection: {
+            marginBottom: sp['4xl'],
+        },
+        inputLabel: {
+            fontSize: typo.fontSize.sm,
+            fontWeight: typo.fontWeight.semibold,
+            color: colors.textSecondary,
+            letterSpacing: typo.letterSpacing.button,
+            textTransform: 'uppercase',
+            marginBottom: sp.lg,
+            marginLeft: sp.xs,
+        },
+        inputWrapper: {
+            borderBottomWidth: 1,
+            borderBottomColor: colors.borderProminent,
+            marginBottom: sp['4xl'],
+        },
+        input: {
+            fontSize: typo.fontSize['4xl'],
+            fontFamily: typo.fontFamily.serif,
+            letterSpacing: typo.letterSpacing.phone,
+            color: colors.text,
+            paddingVertical: sp.lg,
+            paddingHorizontal: 0,
+        },
+        searchButton: {
+            position: 'relative',
+            backgroundColor: colors.surface3,
+            borderWidth: 1,
+            borderColor: colors.borderMedium,
+            paddingVertical: sp.xl,
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+        },
+        searchButtonText: {
+            fontSize: typo.fontSize.label,
+            fontWeight: typo.fontWeight.bold,
+            color: colors.textHigh,
+            letterSpacing: 4,
+            textTransform: 'uppercase',
+        },
+        cardArea: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 280,
+        },
+        memberCard: {
+            width: '100%',
+            maxWidth: 340,
+            aspectRatio: 1.6,
+            borderRadius: radius['2xl'],
+            overflow: 'hidden',
+            shadowColor: colors.text,
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.1,
+            shadowRadius: 60,
+            elevation: 18,
+        },
+        cardGradient: {
+            flex: 1,
+            borderWidth: 1,
+            borderColor: colors.borderMedium,
+            borderRadius: radius['2xl'],
+            padding: sp['2xl'],
+            justifyContent: 'space-between',
+        },
+        cardShine: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.4,
+        },
+        cardHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+        },
+        statusLabel: {
+            fontSize: typo.fontSize.nano,
+            letterSpacing: typo.letterSpacing.button,
+            color: colors.textSecondary,
+            fontWeight: typo.fontWeight.medium,
+            textTransform: 'uppercase',
+            marginBottom: sp.xs,
+        },
+        statusValue: {
+            fontSize: typo.fontSize.body,
+            letterSpacing: typo.letterSpacing.heading,
+            color: colors.success,
+            fontWeight: typo.fontWeight.semibold,
+        },
+        statusValueInactive: {
+            color: colors.error,
+        },
+        nfcIconContainer: {
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: colors.borderMedium,
+            backgroundColor: colors.surface3,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        cardBody: {
+            zIndex: 10,
+        },
+        memberName: {
+            fontSize: typo.fontSize['2xl'],
+            fontFamily: typo.fontFamily.serif,
+            color: colors.text,
+            marginBottom: 2,
+        },
+        memberPhone: {
+            fontSize: typo.fontSize.sm,
+            fontFamily: typo.fontFamily.mono,
+            color: colors.textSecondary,
+            letterSpacing: typo.letterSpacing.wider,
+        },
+        cardFooter: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            paddingTop: sp.lg,
+            borderTopWidth: 1,
+            borderTopColor: colors.surface3,
+            zIndex: 10,
+            gap: sp.lg,
+        },
+        categoryPoints: {
+            flex: 1,
+        },
+        footerLabel: {
+            fontSize: typo.fontSize.nano,
+            letterSpacing: typo.letterSpacing.button,
+            color: colors.textSecondary,
+            fontWeight: typo.fontWeight.medium,
+            textTransform: 'uppercase',
+            marginBottom: 2,
+        },
+        categoryPointsValue: {
+            fontSize: typo.fontSize.xl,
+            fontFamily: typo.fontFamily.serif,
+            color: colors.text,
+        },
+        pointsUnit: {
+            fontSize: typo.fontSize.xs,
+            color: colors.textSecondary,
+            fontStyle: 'italic',
+            fontFamily: typo.fontFamily.sans,
+            textTransform: 'uppercase',
+            marginLeft: 2,
+        },
+        emptyState: {
+            alignItems: 'center',
+            paddingVertical: sp['5xl'],
+        },
+        emptyText: {
+            fontSize: typo.fontSize.xl,
+            fontStyle: 'italic',
+            color: colors.text,
+            fontFamily: typo.fontFamily.serif,
+            marginBottom: sp.sm,
+        },
+        emptyHint: {
+            fontSize: typo.fontSize.label,
+            letterSpacing: 2,
+            color: colors.textSecondary,
+            fontWeight: typo.fontWeight.medium,
+        },
+        bottomAction: {
+            marginTop: sp['4xl'],
+            gap: sp.lg,
+        },
+        transactionButton: {
+            backgroundColor: colors.buttonPrimary,
+            height: btn.primaryHeight,
+            borderRadius: btn.primaryBorderRadius,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: sp['3xl'],
+        },
+        transactionButtonText: {
+            fontSize: typo.fontSize.label,
+            fontWeight: typo.fontWeight.bold,
+            color: colors.buttonPrimaryText,
+            letterSpacing: 4,
+            textTransform: 'uppercase',
+        },
+        transactionButtonArrow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: sp.md,
+        },
+        arrowLine: {
+            width: 32,
+            height: 1,
+            backgroundColor: colors.buttonArrowLine,
+        },
+        blockButton: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            height: 52,
+            borderRadius: radius.none,
+            borderWidth: 1,
+            borderColor: colors.errorBorder,
+            backgroundColor: colors.errorLight,
+        },
+        blockButtonText: {
+            fontSize: typo.fontSize.label,
+            fontWeight: typo.fontWeight.bold,
+            color: colors.error,
+            letterSpacing: 4,
+        },
+        blockedBanner: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            height: 52,
+            borderRadius: radius.none,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.surface2,
+        },
+        blockedBannerText: {
+            fontSize: typo.fontSize.label,
+            fontWeight: typo.fontWeight.bold,
+            color: colors.textSecondary,
+            letterSpacing: 4,
+        },
+        bottomGradientFade: {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 160,
+            backgroundColor: 'transparent',
+        },
+    });
+
+function useStyles() {
+    const { colors, typography, spacing, borderRadius, buttons } = useTheme();
+    return useMemo(
+        () => createStyles(colors, typography, spacing, borderRadius, buttons),
+        [colors, typography, spacing, borderRadius, buttons],
+    );
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export default function LookupScreen() {
     const navigation = useNavigation<any>();
     const { t } = useTranslation();
-    const { colorScheme } = useTheme();
+    const { colors } = useTheme();
+    const styles = useStyles();
     const [mobile, setMobile] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<CustomerResult | null>(null);
@@ -121,7 +449,6 @@ export default function LookupScreen() {
     };
 
     const totalPoints = result ? result.hardwarePoints + result.plywoodPoints : 0;
-    const tierName = totalPoints >= 10000 ? 'PLATINUM TIER' : totalPoints >= 5000 ? 'GOLD TIER' : 'SILVER TIER';
     const statusText = result?.cardStatus === 'ACTIVE' ? 'Active'
         : result?.cardStatus === 'BLOCKED' ? 'Blocked'
         : result?.cardStatus === 'TRANSFERRED' ? 'Transferred'
@@ -147,7 +474,7 @@ export default function LookupScreen() {
                             onPress={() => navigation.goBack()}
                             activeOpacity={0.7}
                         >
-                            <ArrowLeft size={24} color="#fff" strokeWidth={1.5} />
+                            <ArrowLeft size={24} color={colors.text} strokeWidth={1.5} />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Search Member</Text>
                         <View style={styles.headerSpacer} />
@@ -160,7 +487,7 @@ export default function LookupScreen() {
                             <TextInput
                                 style={styles.input}
                                 placeholder="00000 00000"
-                                placeholderTextColor="rgba(255,255,255,0.1)"
+                                placeholderTextColor={colors.borderMedium}
                                 keyboardType="phone-pad"
                                 value={mobile}
                                 onChangeText={handleMobileChange}
@@ -174,7 +501,7 @@ export default function LookupScreen() {
                             activeOpacity={0.8}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color="rgba(255,255,255,0.9)" size="small" />
+                                <ActivityIndicator color={colors.textHigh} size="small" />
                             ) : (
                                 <Text style={styles.searchButtonText}>Search Member</Text>
                             )}
@@ -190,12 +517,12 @@ export default function LookupScreen() {
                                 style={styles.memberCard}
                             >
                                 <LinearGradient
-                                    colors={['#1A1A1A', '#050505']}
+                                    colors={[colors.card, colors.cardDark]}
                                     style={styles.cardGradient}
                                 >
                                     {/* Card shine overlay */}
                                     <LinearGradient
-                                        colors={['transparent', 'rgba(255,255,255,0.02)', 'transparent']}
+                                        colors={['transparent', colors.surface1, 'transparent']}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
                                         style={styles.cardShine}
@@ -211,7 +538,7 @@ export default function LookupScreen() {
                                             ]}>{statusText}</Text>
                                         </View>
                                         <View style={styles.nfcIconContainer}>
-                                            <Nfc size={12} color="#9ca3af" strokeWidth={1.5} />
+                                            <Nfc size={12} color={colors.textSubtle} strokeWidth={1.5} />
                                         </View>
                                     </View>
 
@@ -272,7 +599,7 @@ export default function LookupScreen() {
                                     <Text style={styles.transactionButtonText}>Make Transactions</Text>
                                     <View style={styles.transactionButtonArrow}>
                                         <View style={styles.arrowLine} />
-                                        <ArrowRight size={18} color="#000" strokeWidth={2.5} />
+                                        <ArrowRight size={18} color={colors.buttonPrimaryText} strokeWidth={2.5} />
                                     </View>
                                 </TouchableOpacity>
                             )}
@@ -283,14 +610,14 @@ export default function LookupScreen() {
                                     onPress={() => setShowBlockConfirm(true)}
                                     activeOpacity={0.8}
                                 >
-                                    <ShieldOff size={16} color="#ef4444" strokeWidth={2} />
+                                    <ShieldOff size={16} color={colors.error} strokeWidth={2} />
                                     <Text style={styles.blockButtonText}>{t('block.warningTitle').toUpperCase()}</Text>
                                 </TouchableOpacity>
                             )}
 
                             {(result.cardStatus === 'BLOCKED' || result.cardStatus === 'TRANSFERRED') && (
                                 <View style={styles.blockedBanner}>
-                                    <ShieldOff size={16} color="#6b7280" strokeWidth={1.5} />
+                                    <ShieldOff size={16} color={colors.textSecondary} strokeWidth={1.5} />
                                     <Text style={styles.blockedBannerText}>
                                         {result.cardStatus === 'TRANSFERRED' ? 'CARD TRANSFERRED' : 'CARD BLOCKED'}
                                     </Text>
@@ -314,311 +641,3 @@ export default function LookupScreen() {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#000',
-    },
-    flex: {
-        flex: 1,
-    },
-    bgGradientTop: {
-        position: 'absolute',
-        top: '-5%',
-        left: '-20%',
-        width: '80%',
-        height: '50%',
-        backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 999,
-        transform: [{ scale: 1.5 }],
-        opacity: 0.3,
-    },
-    bgGradientBottom: {
-        position: 'absolute',
-        bottom: '-10%',
-        right: '-20%',
-        width: '80%',
-        height: '50%',
-        backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 999,
-        transform: [{ scale: 1.5 }],
-        opacity: 0.3,
-    },
-    scrollContent: {
-        paddingHorizontal: 28,
-        paddingTop: 0,
-        paddingBottom: 100,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingTop: 16,
-        marginBottom: 40,
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: -8,
-    },
-    headerTitle: {
-        fontSize: 11,
-        fontWeight: '500',
-        color: 'rgba(255,255,255,0.9)',
-        letterSpacing: 4.8,
-        textAlign: 'center',
-        textTransform: 'uppercase',
-    },
-    headerSpacer: {
-        width: 40,
-    },
-    searchSection: {
-        marginBottom: 32,
-    },
-    inputLabel: {
-        fontSize: 10,
-        fontWeight: '600',
-        color: '#6b7280',
-        letterSpacing: 3.2,
-        textTransform: 'uppercase',
-        marginBottom: 16,
-        marginLeft: 4,
-    },
-    inputWrapper: {
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.2)',
-        marginBottom: 32,
-    },
-    input: {
-        fontSize: 24,
-        fontFamily: 'serif',
-        letterSpacing: 8,
-        color: '#fff',
-        paddingVertical: 16,
-        paddingHorizontal: 0,
-    },
-    searchButton: {
-        position: 'relative',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        paddingVertical: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-    },
-    searchButtonText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: 'rgba(255,255,255,0.9)',
-        letterSpacing: 4,
-        textTransform: 'uppercase',
-    },
-    cardArea: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 280,
-    },
-    memberCard: {
-        width: '100%',
-        maxWidth: 340,
-        aspectRatio: 1.6,
-        borderRadius: 24,
-        overflow: 'hidden',
-        shadowColor: '#fff',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.1,
-        shadowRadius: 60,
-        elevation: 18,
-    },
-    cardGradient: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 24,
-        padding: 24,
-        justifyContent: 'space-between',
-    },
-    cardShine: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        opacity: 0.4,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-    },
-    statusLabel: {
-        fontSize: 8,
-        letterSpacing: 3.2,
-        color: '#6b7280',
-        fontWeight: '500',
-        textTransform: 'uppercase',
-        marginBottom: 4,
-    },
-    statusValue: {
-        fontSize: 12,
-        letterSpacing: 4.8,
-        color: '#10b981',
-        fontWeight: '600',
-    },
-    statusValueInactive: {
-        color: '#ef4444',
-    },
-    nfcIconContainer: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    cardBody: {
-        zIndex: 10,
-    },
-    memberName: {
-        fontSize: 18,
-        fontFamily: 'serif',
-        color: '#fff',
-        marginBottom: 2,
-    },
-    memberPhone: {
-        fontSize: 10,
-        fontFamily: 'monospace',
-        color: '#6b7280',
-        letterSpacing: 2.4,
-    },
-    cardFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        paddingTop: 16,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.05)',
-        zIndex: 10,
-        gap: 16,
-    },
-    categoryPoints: {
-        flex: 1,
-    },
-    footerLabel: {
-        fontSize: 8,
-        letterSpacing: 3.2,
-        color: '#6b7280',
-        fontWeight: '500',
-        textTransform: 'uppercase',
-        marginBottom: 2,
-    },
-    categoryPointsValue: {
-        fontSize: 16,
-        fontFamily: 'serif',
-        color: '#fff',
-    },
-    pointsUnit: {
-        fontSize: 9,
-        color: '#6b7280',
-        fontStyle: 'italic',
-        fontFamily: 'sans-serif',
-        textTransform: 'uppercase',
-        marginLeft: 2,
-    },
-    emptyState: {
-        alignItems: 'center',
-        paddingVertical: 40,
-    },
-    emptyText: {
-        fontSize: 16,
-        fontStyle: 'italic',
-        color: '#fff',
-        fontFamily: 'serif',
-        marginBottom: 8,
-    },
-    emptyHint: {
-        fontSize: 11,
-        letterSpacing: 2,
-        color: '#6b7280',
-        fontWeight: '500',
-    },
-    bottomAction: {
-        marginTop: 32,
-        gap: 16,
-    },
-    transactionButton: {
-        backgroundColor: '#fff',
-        height: 56,
-        borderRadius: 0,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 28,
-    },
-    transactionButtonText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#000',
-        letterSpacing: 4,
-        textTransform: 'uppercase',
-    },
-    transactionButtonArrow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    arrowLine: {
-        width: 32,
-        height: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-    },
-    blockButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        height: 52,
-        borderRadius: 0,
-        borderWidth: 1,
-        borderColor: 'rgba(239,68,68,0.3)',
-        backgroundColor: 'rgba(239,68,68,0.05)',
-    },
-    blockButtonText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#ef4444',
-        letterSpacing: 4,
-    },
-    blockedBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        height: 52,
-        borderRadius: 0,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
-        backgroundColor: 'rgba(255,255,255,0.03)',
-    },
-    blockedBannerText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#6b7280',
-        letterSpacing: 4,
-    },
-    bottomGradientFade: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 160,
-        backgroundColor: 'transparent',
-    },
-});
