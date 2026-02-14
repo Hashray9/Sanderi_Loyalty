@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import LinearGradient from 'react-native-linear-gradient';
+// import LinearGradient from 'react-native-linear-gradient'; // OLD: bare RN
+import { LinearGradient } from 'expo-linear-gradient';
 import { ShieldOff, X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 

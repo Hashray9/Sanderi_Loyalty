@@ -1,4 +1,50 @@
 {
   "name": "SanderiMobile",
-  "displayName": "SanderiMobile"
+  "displayName": "SanderiMobile",
+  "expo": {
+    "name": "SanderiMobile",
+    "slug": "sanderi-mobile",
+    "version": "1.0.0",
+    "scheme": "sanderimobile",
+    "android": {
+      "package": "com.sanderimobile",
+      "permissions": [
+        "NFC",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "VIBRATE",
+        "ACCESS_NETWORK_STATE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.NFC"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.sanderimobile",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NFCReaderUsageDescription": "This app uses NFC to read loyalty cards",
+        "NSFaceIDUsageDescription": "This app uses Face ID for secure login"
+      }
+    },
+    "plugins": [
+      "expo-splash-screen",
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-audio",
+      "react-native-nfc-manager",
+      "expo-asset"
+    ],
+    "splash": {
+      "backgroundColor": "#0a0a0a"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ac393069-060a-4379-b2dc-fe805768531b"
+      }
+    },
+    "owner": "hashary"
+  }
 }

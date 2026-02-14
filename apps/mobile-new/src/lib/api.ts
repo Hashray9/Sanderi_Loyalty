@@ -1,9 +1,9 @@
-import Config from 'react-native-config';
+// import Config from 'react-native-config'; // OLD: bare RN
 
-const API_URL = Config.API_URL || 'http://localhost:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 // Debug: Log API URL on load
-console.log('🌐 API Config:', { API_URL, configApiUrl: Config.API_URL });
+console.log('🌐 API Config:', { API_URL, configApiUrl: process.env.EXPO_PUBLIC_API_URL });
 
 let authToken: string | null = null;
 

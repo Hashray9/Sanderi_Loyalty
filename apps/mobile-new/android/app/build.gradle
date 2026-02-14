@@ -2,8 +2,8 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
-// react-native-config: Load environment variables from .env file
-apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
+// OLD: react-native-config dotenv (disabled — using EXPO_PUBLIC_ env vars now)
+// apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
 
 /**
  * This is the configuration block to customize your React Native Android app.

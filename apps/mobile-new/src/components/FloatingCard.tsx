@@ -10,7 +10,8 @@ import Animated, {
     withDelay,
     Easing,
 } from 'react-native-reanimated';
-import LinearGradient from 'react-native-linear-gradient';
+// import LinearGradient from 'react-native-linear-gradient'; // OLD: bare RN
+import { LinearGradient } from 'expo-linear-gradient';
 import { Nfc } from 'lucide-react-native';
 
 interface FloatingCardProps {

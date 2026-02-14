@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import * as Keychain from 'react-native-keychain';
-import ReactNativeBiometrics from 'react-native-biometrics';
+// import * as Keychain from 'react-native-keychain'; // OLD: bare RN
+// import ReactNativeBiometrics from 'react-native-biometrics'; // OLD: bare RN
+import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { api, setAuthToken } from '@/lib/api';
 
 interface Staff {
@@ -42,27 +44,23 @@ const TOKEN_KEY = 'auth_token';
 const CREDENTIALS_KEY = 'auth_credentials';
 const USER_DATA_KEY = 'user_data';
 
-const rnBiometrics = new ReactNativeBiometrics();
+// const rnBiometrics = new ReactNativeBiometrics(); // OLD: bare RN
 
-// Helper functions for Keychain storage
+// Helper functions for secure storage (Expo SecureStore)
 async function getKeychainItem(key: string): Promise<string | null> {
     try {
-        const result = await Keychain.getGenericPassword({ service: key });
-        if (result && result.password) {
-            return result.password;
-        }
-        return null;
+        return await SecureStore.getItemAsync(key);
     } catch {
         return null;
     }
 }
 
 async function setKeychainItem(key: string, value: string): Promise<void> {
-    await Keychain.setGenericPassword(key, value, { service: key });
+    await SecureStore.setItemAsync(key, value);
 }
 
 async function deleteKeychainItem(key: string): Promise<void> {
-    await Keychain.resetGenericPassword({ service: key });
+    await SecureStore.deleteItemAsync(key);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -75,9 +73,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const checkBiometrics = async () => {
         try {
-            const { available } = await rnBiometrics.isSensorAvailable();
+            const hasHardware = await LocalAuthentication.hasHardwareAsync();
+            const isEnrolled = await LocalAuthentication.isEnrolledAsync();
             const hasCredentials = await getKeychainItem(CREDENTIALS_KEY);
-            setHasBiometrics(available && !!hasCredentials);
+            setHasBiometrics(hasHardware && isEnrolled && !!hasCredentials);
         } catch {
             setHasBiometrics(false);
         }
@@ -173,11 +172,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Authenticate with biometrics first
-        const { success } = await rnBiometrics.simplePrompt({
+        const result = await LocalAuthentication.authenticateAsync({
             promptMessage: 'Authenticate to login',
         });
 
-        if (!success) {
+        if (!result.success) {
             throw new Error('Biometric authentication failed');
         }
 

@@ -3,7 +3,8 @@ import { StatusBar, StyleSheet, LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
-import SplashScreen from 'react-native-splash-screen';
+// import SplashScreen from 'react-native-splash-screen'; // OLD: bare RN
+import * as SplashScreen from 'expo-splash-screen';
 
 // Providers
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
@@ -18,13 +19,16 @@ import '@/lib/i18n';
 // Ignore specific warnings (optional)
 LogBox.ignoreLogs(['Reanimated 2']);
 
+// Prevent splash screen from auto-hiding
+SplashScreen.preventAutoHideAsync();
+
 function AppContent() {
   const { colorScheme, colors } = useTheme();
 
   useEffect(() => {
     // Hide splash screen after app is ready
     const timer = setTimeout(() => {
-      SplashScreen.hide();
+      SplashScreen.hideAsync();
     }, 500);
 
     return () => clearTimeout(timer);

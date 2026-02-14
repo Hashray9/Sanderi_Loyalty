@@ -5,17 +5,15 @@ import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
-import org.devio.rn.splashscreen.SplashScreen
+// import org.devio.rn.splashscreen.SplashScreen // OLD: bare RN — causes AndroidX conflict
 
 class MainActivity : ReactActivity() {
 
-  /**
-   * Show the splash screen when the activity is created
-   */
-  override fun onCreate(savedInstanceState: Bundle?) {
-    SplashScreen.show(this)  // Show splash screen
-    super.onCreate(savedInstanceState)
-  }
+  // OLD: Splash screen handled by Expo now
+  // override fun onCreate(savedInstanceState: Bundle?) {
+  //   SplashScreen.show(this)
+  //   super.onCreate(savedInstanceState)
+  // }
 
   /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule

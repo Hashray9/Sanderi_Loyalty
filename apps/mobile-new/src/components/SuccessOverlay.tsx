@@ -7,9 +7,11 @@ import Animated, {
     ZoomIn,
     SlideInDown,
 } from 'react-native-reanimated';
-import LinearGradient from 'react-native-linear-gradient';
+// import LinearGradient from 'react-native-linear-gradient'; // OLD: bare RN
+import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Check } from 'lucide-react-native';
-import HapticFeedback from 'react-native-haptic-feedback';
+// import HapticFeedback from 'react-native-haptic-feedback'; // OLD: bare RN
+import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 
 interface TransactionDetail {
@@ -44,7 +46,7 @@ export function SuccessOverlay({ visible, transaction, onDismiss }: SuccessOverl
     useEffect(() => {
         if (visible) {
             Keyboard.dismiss();
-            HapticFeedback.trigger('notificationSuccess');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
     }, [visible]);
 
